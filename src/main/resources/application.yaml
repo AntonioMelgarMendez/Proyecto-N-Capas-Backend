@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: proyectoNCapas
+
+  # --- Configuración de Base de Datos ---
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/gestion_alquileres}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+# --- Configuración de Stripe ---
+stripe:
+  secret:
+    key: ${STRIPE_SECRET_KEY}
+  webhook:
+    secret: ${STRIPE_WEBHOOK_SECRET}
