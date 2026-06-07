@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -61,11 +62,10 @@ public class Property {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // --- Relaciones que se activarán en commits siguientes ---
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PropertyPhoto> photos;
 
-    // @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
-    // private List<PropertyPhoto> photos;
-
+    // --- Relación que se activará luego ---
     // @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
     // private List<PropertyRule> rules;
 
