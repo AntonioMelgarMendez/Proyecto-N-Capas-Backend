@@ -1,30 +1,79 @@
 package com.proyecto.proyectoncapas.entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import java.math.BigDecimal;
+import lombok.NoArgsConstructor;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "reservas")
+@Table(name = "reservations")
 public class Reservation {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relationships (to be added by the rest of the team)
-    // @ManyToOne User user;
-    // @ManyToOne Property property;
+    // --- Relaciones Futuras (El equipo las descomentará cuando existan las entidades) ---
 
-    @Column(name = "total_amount")
-    private BigDecimal totalAmount;
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "property_id", nullable = false)
+    // private Property property;
 
-    @Column(name = "payment_status")
-    private String paymentStatus; // e.g., "PENDING", "CONFIRMED", "FAILED"
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "tenant_id", nullable = false)
+    // private User tenant;
 
-    @Column(name = "stripe_session_id")
-    private String stripeSessionId;
+    // -----------------------------------------------------------------------------------
 
-    @Column(name = "stripe_payment_intent_id")
-    private String stripePaymentIntentId;
+    @Column(name = "check_in_date", nullable = false)
+    private LocalDate checkInDate;
+
+    @Column(name = "check_out_date", nullable = false)
+    private LocalDate checkOutDate;
+
+    @Column(name = "number_of_guests")
+    private Integer numberOfGuests;
+
+    // Estados: "PENDING", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"
+    @Column(nullable = false)
+    private String status;
+
+    @Column(name = "cancellation_date")
+    private LocalDate cancellationDate;
+
+    @Column(name = "is_extended")
+    private Boolean isExtended;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    // Relacion con modulo de pagos
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL)
+    private List<Payment> payments;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+
+        if (this.isExtended == null) {
+            this.isExtended = false;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
