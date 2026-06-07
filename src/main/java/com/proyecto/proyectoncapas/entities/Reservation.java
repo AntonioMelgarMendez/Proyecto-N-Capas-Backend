@@ -23,12 +23,11 @@ public class Reservation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // --- Relaciones Futuras (El equipo las descomentará cuando existan las entidades) ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id", nullable = false)
+    private Property property;
 
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "property_id", nullable = false)
-    // private Property property;
-
+    // --- Relación pendiente (se activa cuando el módulo de Auth esté listo) ---
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "tenant_id", nullable = false)
     // private User tenant;
