@@ -65,9 +65,8 @@ public class Property {
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PropertyPhoto> photos;
 
-    // --- Relación que se activará luego ---
-    // @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
-    // private List<PropertyRule> rules;
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PropertyRule> rules;
 
     @PrePersist
     protected void onCreate() {
