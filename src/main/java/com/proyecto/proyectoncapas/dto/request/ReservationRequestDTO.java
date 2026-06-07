@@ -14,12 +14,14 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ReservationRequestDTO {
 
-    private LocalDate checkIn;
+    private LocalDate checkInDate;
 
-    private LocalDate checkOut;
+    private LocalDate checkOutDate;
+
+    private Integer numberOfGuests;
 
     private BigDecimal totalAmount;
-    // Espacios listos para que el equipo agregue las relaciones cuando creen esas tablas
+
     // private Long propertyId;
-    // private Long inquilinoId;
+    // private Long tenantId;
 }

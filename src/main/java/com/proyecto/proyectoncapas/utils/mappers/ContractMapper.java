@@ -8,8 +8,10 @@ public class ContractMapper {
         return ContractResponseDTO.builder()
                 .contractId(contract.getId())
                 .reservationId(contract.getReservation() != null ? contract.getReservation().getId() : null)
+                .content(contract.getContent())
                 .signatureHash(contract.getSignatureHash())
-                .signedAt(contract.getSignedAt())
+                .tenantSignatureDate(contract.getTenantSignatureDate())
+                .landlordSignatureDate(contract.getLandlordSignatureDate())
                 .status(contract.getStatus())
                 .build();
     }

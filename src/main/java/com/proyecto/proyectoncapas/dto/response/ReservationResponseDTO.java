@@ -15,19 +15,10 @@ import java.time.LocalDate;
 public class ReservationResponseDTO {
 
     private Long id;
-
-    private LocalDate checkIn;
-
-    private LocalDate checkOut;
-
+    private LocalDate checkInDate;
+    private LocalDate checkOutDate;
+    private Integer numberOfGuests;
     private BigDecimal totalAmount;
+    private String status;
 
-    private String paymentStatus;
-
-    private String stripeSessionId;
-
-
-    // Espacios para el futuro
-    // private String propertyName;
-    // private String inquilinoName;
 }

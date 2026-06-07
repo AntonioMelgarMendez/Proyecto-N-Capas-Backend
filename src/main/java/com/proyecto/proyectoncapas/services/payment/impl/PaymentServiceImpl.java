@@ -1,6 +1,8 @@
 package com.proyecto.proyectoncapas.services.payment.impl;
 
+import com.proyecto.proyectoncapas.entities.Payment;
 import com.proyecto.proyectoncapas.entities.Reservation;
+import com.proyecto.proyectoncapas.repository.PaymentRepository;
 import com.proyecto.proyectoncapas.repository.ReservationRepository;
 import com.proyecto.proyectoncapas.services.payment.PaymentService;
 import com.stripe.exception.StripeException;
@@ -14,8 +16,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.proyecto.proyectoncapas.exception.ResourceNotFoundException;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -23,6 +28,7 @@ import java.math.BigDecimal;
 public class PaymentServiceImpl implements PaymentService {
 
     private final ReservationRepository reservationRepository;
+    private final PaymentRepository paymentRepository;
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -31,7 +37,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional
     public String startPaymentReservation(Long reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new RuntimeException("Reservation not found with ID: " + reservationId));
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with ID: " + reservationId));
 
         try {
             SessionCreateParams params = SessionCreateParams.builder()
@@ -59,11 +65,15 @@ public class PaymentServiceImpl implements PaymentService {
 
             Session session = Session.create(params);
 
-            // Save the session ID and update status
-            reservation.setStripeSessionId(session.getId());
-            reservation.setPaymentStatus("PENDING");
-            reservationRepository.save(reservation);
+            Payment payment = Payment.builder()
+                    .reservation(reservation)
+                    .amount(reservation.getTotalAmount())
+                    .status("PENDING")
+                    .paymentMethod("STRIPE")
+                    .transactionId(session.getId())
+                    .build();
 
+            paymentRepository.save(payment);
             log.info("Stripe payment session created for Reservation ID: {}", reservationId);
             return session.getUrl();
 
@@ -72,7 +82,6 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Failed to initialize payment gateway");
         }
     }
-
     @Override
     @Transactional
     public void confirmPayment(Event event) {
@@ -80,52 +89,55 @@ public class PaymentServiceImpl implements PaymentService {
             Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
 
             if (session != null) {
-                Reservation reservation = reservationRepository.findByStripeSessionId(session.getId())
-                        .orElseThrow(() -> new RuntimeException("Reservation not found for Session ID: " + session.getId()));
+                Payment payment = paymentRepository.findByTransactionId(session.getId())
+                        .orElseThrow(() -> new RuntimeException("Payment record not found for Session ID: " + session.getId()));
 
-                reservation.setPaymentStatus("CONFIRMED");
+                payment.setStatus("COMPLETED");
+                payment.setPaidAt(LocalDateTime.now());
+
+                if(session.getPaymentIntent() != null) {
+                    payment.setTransactionId(session.getPaymentIntent());
+                }
+
+                paymentRepository.save(payment);
+                Reservation reservation = payment.getReservation();
+                reservation.setStatus("CONFIRMED");
                 reservationRepository.save(reservation);
 
                 log.info("Payment successfully confirmed for Reservation ID: {}", reservation.getId());
-
-                // Note: The rest of the team can later add logic here to trigger emails,
-                // generate digital contracts, or update property availability.
             }
-        } else {
-            log.warn("Unhandled Stripe event type: {}", event.getType());
         }
     }
     @Override
     @Transactional
     public void refundSecurityDeposit(Long reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
-
-        if (!"CONFIRMED".equals(reservation.getPaymentStatus())) {
-            throw new RuntimeException("No se puede reembolsar un pago que no está confirmado");
-        }
+        Payment payment = paymentRepository.findFirstByReservationIdAndStatusOrderByCreatedAtDesc(reservationId, "COMPLETED")
+                .orElseThrow(() -> new RuntimeException("No se encontró un pago completado para la reserva ID: " + reservationId));
 
         try {
             RefundCreateParams params = RefundCreateParams.builder()
-                    .setPaymentIntent(reservation.getStripePaymentIntentId())
+                    .setPaymentIntent(payment.getTransactionId())
                     .build();
 
             Refund refund = Refund.create(params);
-            reservation.setPaymentStatus("REFUNDED");
-            reservationRepository.save(reservation);
+            payment.setStatus("REFUNDED");
+            paymentRepository.save(payment);
 
-            log.info("Depósito reembolsado para la reserva: {}", reservationId);
+            log.info("Depósito reembolsado exitosamente para la reserva: {} - Payment ID: {}", reservationId, payment.getId());
 
         } catch (StripeException e) {
-            log.error("Error al procesar el reembolso en Stripe", e);
+            log.error("Error al procesar el reembolso en Stripe para la reserva: {}", reservationId, e);
             throw new RuntimeException("Error al procesar el reembolso con la pasarela de pagos");
         }
     }
 
     @Override
     public String getPaymentStatus(Long reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
-        return reservation.getPaymentStatus();
+        List<Payment> payments = paymentRepository.findByReservationIdOrderByCreatedAtDesc(reservationId);
+
+        if (payments.isEmpty()) {
+            return "NO_PAYMENT_FOUND";
+        }
+        return payments.get(0).getStatus();
     }
 }

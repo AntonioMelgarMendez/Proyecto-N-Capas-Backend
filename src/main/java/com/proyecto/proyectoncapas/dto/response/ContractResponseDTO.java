@@ -9,7 +9,9 @@ import java.time.LocalDateTime;
 public class ContractResponseDTO {
     private Long contractId;
     private Long reservationId;
+    private String content;
     private String signatureHash;
-    private LocalDateTime signedAt;
+    private LocalDateTime tenantSignatureDate;
+    private LocalDateTime landlordSignatureDate;
     private String status;
 }

@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,6 +43,9 @@ public class Reservation {
 
     @Column(name = "number_of_guests")
     private Integer numberOfGuests;
+
+    @Column(name = "total_amount", nullable = false)
+    private BigDecimal totalAmount;
 
     // Estados: "PENDING", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"
     @Column(nullable = false)
