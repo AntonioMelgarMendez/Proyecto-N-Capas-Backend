@@ -1,4 +1,5 @@
 package com.proyecto.proyectoncapas.entities;
+
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
@@ -11,11 +12,19 @@ public class Reservation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    //Relaciones
+    // Relationships (to be added by the rest of the team)
+    // @ManyToOne User user;
+    // @ManyToOne Property property;
 
-    private BigDecimal montoTotal;
-    private String estadoPago; // Ej: "PENDIENTE", "CONFIRMADO"
+    @Column(name = "total_amount")
+    private BigDecimal totalAmount;
+
+    @Column(name = "payment_status")
+    private String paymentStatus; // e.g., "PENDING", "CONFIRMED", "FAILED"
 
     @Column(name = "stripe_session_id")
     private String stripeSessionId;
+
+    @Column(name = "stripe_payment_intent_id")
+    private String stripePaymentIntentId;
 }

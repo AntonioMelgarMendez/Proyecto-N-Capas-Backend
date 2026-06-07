@@ -4,8 +4,8 @@ spring:
 
   # --- Configuración de Base de Datos ---
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/gestion_alquileres}
-    username: ${DB_USER}
+    url: ${DATABASE_URL}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
   jpa:
@@ -18,4 +18,4 @@ stripe:
   secret:
     key: ${STRIPE_SECRET_KEY}
   webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET}
+    secret: ${STRIPE_WEBHOOK_SECRET:whsec_temporal_por_definir}

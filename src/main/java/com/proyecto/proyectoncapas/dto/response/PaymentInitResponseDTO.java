@@ -1,4 +1,4 @@
-package com.proyecto.proyectoncapas.dto;
+package com.proyecto.proyectoncapas.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
