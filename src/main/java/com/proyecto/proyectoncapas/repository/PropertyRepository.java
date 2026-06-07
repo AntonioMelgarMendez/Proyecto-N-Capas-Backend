@@ -9,7 +9,7 @@ import java.util.List;
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, Long> {
 
-    List<Property> findByLandlordId(Long landlordId);
+    List<Property> findByLandlord_Id(Long landlordId);
 
     List<Property> findByIsAvailableTrue();
 

@@ -75,11 +75,13 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PropertyResponseDTO getPropertyById(Long id) {
         return PropertyMapper.toResponseDTO(findPropertyOrThrow(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PropertyResponseDTO> getAllProperties() {
         return propertyRepository.findAll().stream()
                 .map(PropertyMapper::toResponseDTO)
@@ -87,13 +89,15 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PropertyResponseDTO> getPropertiesByLandlord(Long landlordId) {
-        return propertyRepository.findByLandlordId(landlordId).stream()
+        return propertyRepository.findByLandlord_Id(landlordId).stream()
                 .map(PropertyMapper::toResponseDTO)
                 .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PropertyResponseDTO> getAvailableProperties() {
         return propertyRepository.findByIsAvailableTrue().stream()
                 .map(PropertyMapper::toResponseDTO)
@@ -101,6 +105,7 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PropertyResponseDTO> getPropertiesByCity(String city) {
         return propertyRepository.findByCityIgnoreCase(city).stream()
                 .map(PropertyMapper::toResponseDTO)
