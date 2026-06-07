@@ -20,6 +20,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/webhooks/**").permitAll()
                         .requestMatchers("/api/contracts/**").permitAll()
                         .requestMatchers("/api/identity/**").permitAll()
+                        .requestMatchers("/api/properties/**").permitAll()
                         .anyRequest().authenticated()
                 );
 
