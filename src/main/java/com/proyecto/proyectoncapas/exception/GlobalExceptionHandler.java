@@ -43,6 +43,15 @@ public class GlobalExceptionHandler {
                 errors
         );
     }
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<ApiError> handleFileStorageException(FileStorageException ex) {
+        return buildResponseEntity(
+                HttpStatus.BAD_REQUEST,
+                "File Storage Error",
+                ex.getMessage(),
+                null
+        );
+    }
 
     // Maneja cualquier otra excepción no controlada
     @ExceptionHandler(Exception.class)
