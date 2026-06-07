@@ -1,4 +1,4 @@
-package com.proyecto.proyectoncapas.controllers;
+package com.proyecto.proyectoncapas.controller.payments;
 
 import com.proyecto.proyectoncapas.services.payment.PaymentService;
 import com.stripe.exception.SignatureVerificationException;
@@ -24,24 +24,15 @@ public class PaymentWebhookController {
     @PostMapping
     public ResponseEntity<Void> handleStripeWebhook(
             @RequestBody String payload,
-            @RequestHeader("Stripe-Signature") String signatureHeader) {
+            @RequestHeader("Stripe-Signature") String signatureHeader) throws SignatureVerificationException {
 
-        try {
-            // Verify the event came from Stripe
-            Event event = Webhook.constructEvent(payload, signatureHeader, webhookSecret);
+        //Verificamos la firma (Si falla, el GlobalExceptionHandler lanza el ApiError automáticamente)
+        Event event = Webhook.constructEvent(payload, signatureHeader, webhookSecret);
 
-            // Process the confirmation
-            paymentService.confirmPayment(event);
+        //Procesamos el pago en el servicio
+        paymentService.confirmPayment(event);
 
-            // Return 200 OK so Stripe knows we received it
-            return ResponseEntity.ok().build();
-
-        } catch (SignatureVerificationException e) {
-            log.error("Invalid Stripe webhook signature", e);
-            return ResponseEntity.badRequest().build(); // 400 Bad Request
-        } catch (Exception e) {
-            log.error("Error processing Stripe webhook", e);
-            return ResponseEntity.internalServerError().build(); // 500 Internal Server Error
-        }
+        //Retornamos un 200 OK vacío exclusivo para los servidores de Stripe
+        return ResponseEntity.ok().build();
     }
 }
