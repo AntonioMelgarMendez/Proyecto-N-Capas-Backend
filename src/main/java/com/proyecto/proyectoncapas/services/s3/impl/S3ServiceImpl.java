@@ -1,0 +1,85 @@
+package com.proyecto.proyectoncapas.services.s3.impl;
+
+import com.proyecto.proyectoncapas.exception.FileStorageException;
+import com.proyecto.proyectoncapas.services.s3.S3Service;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import java.io.IOException;
+import java.util.Set;
+import java.util.UUID;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class S3ServiceImpl implements S3Service {
+
+    private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+    private final S3Client s3Client;
+
+    @Value("${aws.s3.bucket-name}")
+    private String bucketName;
+
+    @Value("${aws.s3.region}")
+    private String region;
+
+    @Override
+    public String uploadFile(MultipartFile file, Long propertyId) {
+        validateFile(file);
+
+        String key = "properties/" + propertyId + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
+
+        try {
+            PutObjectRequest request = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(file.getContentType())
+                    .build();
+
+            s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
+            log.info("File uploaded to S3 with key: {}", key);
+            return key;
+
+        } catch (IOException e) {
+            log.error("Failed to upload file to S3", e);
+            throw new FileStorageException("Failed to upload file: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void deleteFile(String s3Key) {
+        DeleteObjectRequest request = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(s3Key)
+                .build();
+
+        s3Client.deleteObject(request);
+        log.info("File deleted from S3 with key: {}", s3Key);
+    }
+
+    @Override
+    public String getFileUrl(String s3Key) {
+        return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + s3Key;
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new FileStorageException("File cannot be empty");
+        }
+        if (!ALLOWED_TYPES.contains(file.getContentType())) {
+            throw new FileStorageException("File type not allowed. Accepted: JPEG, PNG, WEBP");
+        }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new FileStorageException("File size exceeds the 5MB limit");
+        }
+    }
+}
