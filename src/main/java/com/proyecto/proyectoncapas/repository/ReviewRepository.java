@@ -20,6 +20,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     Optional<Review> findByReservationIdAndReviewerId(Long reservationId, Long reviewerId);
 
+    void deleteByPropertyId(Long propertyId);
+
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.reviewee.id = :userId AND r.reviewType = :reviewType")
     Double calculateAverageRatingForUser(@Param("userId") Long userId, @Param("reviewType") String reviewType);
 

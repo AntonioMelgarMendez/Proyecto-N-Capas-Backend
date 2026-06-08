@@ -6,8 +6,11 @@ import com.proyecto.proyectoncapas.entities.Property;
 import com.proyecto.proyectoncapas.entities.PropertyRule;
 import com.proyecto.proyectoncapas.entities.User;
 import com.proyecto.proyectoncapas.exception.ResourceNotFoundException;
+import com.proyecto.proyectoncapas.repository.PropertyPhotoRepository;
 import com.proyecto.proyectoncapas.repository.PropertyRepository;
 import com.proyecto.proyectoncapas.repository.PropertyRuleRepository;
+import com.proyecto.proyectoncapas.repository.ReservationRepository;
+import com.proyecto.proyectoncapas.repository.ReviewRepository;
 import com.proyecto.proyectoncapas.repository.UserRepository;
 import com.proyecto.proyectoncapas.services.property.PropertyService;
 import com.proyecto.proyectoncapas.utils.mappers.PropertyMapper;
@@ -26,6 +29,9 @@ public class PropertyServiceImpl implements PropertyService {
 
     private final PropertyRepository propertyRepository;
     private final PropertyRuleRepository propertyRuleRepository;
+    private final PropertyPhotoRepository propertyPhotoRepository;
+    private final ReviewRepository reviewRepository;
+    private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -116,6 +122,12 @@ public class PropertyServiceImpl implements PropertyService {
     @Transactional
     public void deleteProperty(Long id) {
         findPropertyOrThrow(id);
+        if (reservationRepository.existsByProperty_Id(id)) {
+            throw new IllegalStateException("Cannot delete a property that has existing reservations");
+        }
+        reviewRepository.deleteByPropertyId(id);
+        propertyPhotoRepository.deleteByPropertyId(id);
+        propertyRuleRepository.deleteByPropertyId(id);
         propertyRepository.deleteById(id);
         log.info("Property deleted with ID: {}", id);
     }
