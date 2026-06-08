@@ -32,6 +32,9 @@ public class S3ServiceImpl implements S3Service {
     @Value("${aws.s3.region}")
     private String region;
 
+    @Value("${aws.s3.endpoint-override:#{null}}")
+    private String endpointOverride;
+
     @Override
     public String uploadFile(MultipartFile file, Long propertyId) {
         validateFile(file);
@@ -68,6 +71,9 @@ public class S3ServiceImpl implements S3Service {
 
     @Override
     public String getFileUrl(String s3Key) {
+        if (endpointOverride != null) {
+            return endpointOverride + "/" + bucketName + "/" + s3Key;
+        }
         return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + s3Key;
     }
 

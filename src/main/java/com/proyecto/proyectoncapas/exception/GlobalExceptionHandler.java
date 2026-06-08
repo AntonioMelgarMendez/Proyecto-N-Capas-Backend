@@ -43,6 +43,11 @@ public class GlobalExceptionHandler {
                 errors
         );
     }
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex) {
+        return buildResponseEntity(HttpStatus.CONFLICT, "Business Conflict", ex.getMessage(), null);
+    }
+
     @ExceptionHandler(FileStorageException.class)
     public ResponseEntity<ApiError> handleFileStorageException(FileStorageException ex) {
         return buildResponseEntity(
