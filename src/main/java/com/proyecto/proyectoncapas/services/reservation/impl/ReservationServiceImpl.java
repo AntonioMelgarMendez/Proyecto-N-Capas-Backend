@@ -109,7 +109,7 @@ public class ReservationServiceImpl implements ReservationService {
 
     public void cancelOrReleaseExpiredBooking(Long bookingId) {
         Reservation booking = reservationRepository.findById(bookingId).orElse(null);
-        if (booking != null && ReservationStatus.PENDING_PAYMENT.name().equals(booking.getStatus())) {
+        if (booking != null && ReservationStatus.PENDING_PAYMENT.equals(booking.getStatus())) {
 
             // 1. Cambiar estado a cancelado/expirado
             booking.setStatus(ReservationStatus.EXPIRED);
@@ -118,6 +118,43 @@ public class ReservationServiceImpl implements ReservationService {
             // 2. Liberar el calendario inmediatamente
             availabilityRepository.deleteByReservationId(bookingId);
         }
+    }
+
+    @Transactional
+    public CancellationQuoteResponseDTO quoteCancellation(Long reservationId) {
+        Reservation booking = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException("Reserva no encontrada"));
+
+        Property property = booking.getProperty();
+        LocalDate today = LocalDate.now();
+
+        // Construimos el contexto con la fecha de cancelación activa
+        int totalNights = (int) ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate());
+        BookingContext context = new BookingContext(
+                totalNights,
+                property.getPricePerNight(),
+                booking.getNumberOfGuests(), // <-- CORRECCIÓN: Extraído de la reserva original
+                booking.getCheckInDate(),
+                today,                       // Activamos la lógica de cancelación tardía proporcional
+                false,
+                0
+        );
+        // El motor calcula: Precio Base + Penalizaciones aplicables (si aplica)
+        BigDecimal priceWithPenalties = priceCalculationService.calculateFinalPrice(property, context);
+
+        // La penalización real cobrada es la diferencia entre el cálculo con penalización y el costo base original
+        BigDecimal baseTotalPrice = property.getPricePerNight().multiply(BigDecimal.valueOf(totalNights));
+        BigDecimal penaltyFee = priceWithPenalties.subtract(baseTotalPrice).max(BigDecimal.ZERO);
+
+        // El reembolso es lo que pagó originalmente el cliente menos la penalización aplicada
+        BigDecimal refundAmount = booking.getTotalAmount().subtract(penaltyFee).max(BigDecimal.ZERO);
+
+        return new CancellationQuoteResponseDTO(
+                reservationId,
+                booking.getTotalAmount(), // lo que pagó originalmente
+                penaltyFee,              // la multa por cancelar tarde
+                refundAmount             // lo que se le va a devolver a su tarjeta
+        );
     }
 
     @Override
@@ -186,39 +223,34 @@ public class ReservationServiceImpl implements ReservationService {
 
 
     @Transactional
-    public CancellationQuoteResponseDTO quoteCancellation(Long reservationId) {
-        Reservation booking = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ReservationNotFoundException("Reserva no encontrada"));
+    public ExtensionQuoteResponseDTO quoteExtension(Long id, int extraDays) {
 
-        Property property = booking.getProperty();
-        LocalDate today = LocalDate.now();
+        // 1. Recuperar la reserva original ya pagada
+        Reservation originalBooking = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada"));
 
-        // Construimos el contexto con la fecha de cancelación activa
-        int totalNights = (int) ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate());
-        BookingContext context = new BookingContext(
-                totalNights,
+        Property property = originalBooking.getProperty();
+
+        // 2. Construir el contexto enfocado SOLO en los días extra
+        BookingContext extensionContext = new BookingContext(
+                extraDays,
                 property.getPricePerNight(),
-                booking.getNumberOfGuests(), // <-- CORRECCIÓN: Extraído de la reserva original
-                booking.getCheckInDate(),
-                today,                       // Activamos la lógica de cancelación tardía proporcional
-                false,
-                0
+                originalBooking.getNumberOfGuests(),
+                originalBooking.getCheckInDate(),
+                null,
+                true,
+                extraDays
         );
-        // El motor calcula: Precio Base + Penalizaciones aplicables (si aplica)
-        BigDecimal priceWithPenalties = priceCalculationService.calculateFinalPrice(property, context);
 
-        // La penalización real cobrada es la diferencia entre el cálculo con penalización y el costo base original
-        BigDecimal baseTotalPrice = property.getPricePerNight().multiply(BigDecimal.valueOf(totalNights));
-        BigDecimal penaltyFee = priceWithPenalties.subtract(baseTotalPrice).max(BigDecimal.ZERO);
+        // 3. El motor calcula el costo de la extensión con las reglas de la propiedad
+        BigDecimal extensionSubtotal = priceCalculationService.calculateFinalPrice(property, extensionContext);
 
-        // El reembolso es lo que pagó originalmente el cliente menos la penalización aplicada
-        BigDecimal refundAmount = booking.getTotalAmount().subtract(penaltyFee).max(BigDecimal.ZERO);
-
-        return new CancellationQuoteResponseDTO(
-                reservationId,
-                booking.getTotalAmount(), // lo que pagó originalmente
-                penaltyFee,              // la multa por cancelar tarde
-                refundAmount             // lo que se le va a devolver a su tarjeta
+        // 4. Preparar la respuesta para el cliente
+        return new ExtensionQuoteResponseDTO(
+                id,
+                extraDays,
+                property.getPricePerNight().multiply(BigDecimal.valueOf(extraDays)),
+                extensionSubtotal
         );
     }
 

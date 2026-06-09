@@ -8,6 +8,7 @@ import com.proyecto.proyectoncapas.services.reservation.AvailabilityService;
 import com.proyecto.proyectoncapas.services.reservation.BookingContext;
 import com.proyecto.proyectoncapas.services.reservation.ReservationService;
 import com.proyecto.proyectoncapas.services.reservation.impl.PriceCalculationService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.core.Local;
@@ -59,40 +60,13 @@ public class ReservationController {
 
     }
 
-    @PostMapping("/{id}/extend/quote")//TODO: Migrar logica a service.
+    @PostMapping("/{id}/extend/quote")
     public ResponseEntity<GeneralResponse<ExtensionQuoteResponseDTO>> quoteExtension(
             @PathVariable Long id,
             @RequestParam int extraDays) {
 
-        // 1. Recuperar la reserva original ya pagada
-        Reservation originalBooking = bookingService.findById(id);
-
-        Property property = originalBooking.getProperty();
-
-        // 2. Construir el contexto enfocado SOLO en los días extra
-        // Pasamos 'extraDays' como la estadía base de esta nueva cotización en caliente
-        BookingContext extensionContext = new BookingContext(
-                extraDays,                          // totalDays para el cálculo base
-                property.getPricePerNight(),
-                originalBooking.getNumberOfGuests(),
-                originalBooking.getCheckInDate(),   // checkIn original
-                null,                               // cancellationDate (no aplica)
-                true,                               // isExtension = true
-                extraDays                           // extendedDays para el recargo
-        );
-
-        // 3. El motor calcula el costo de la extensión con las reglas de la propiedad
-        BigDecimal extensionSubtotal = priceCalculationService.
-                calculateFinalPrice(property, extensionContext);
-
-        // 4. Preparar la respuesta para el cliente
-        ExtensionQuoteResponseDTO data = new ExtensionQuoteResponseDTO(
-                id,
-                extraDays,
-                property.getPricePerNight().multiply(BigDecimal.valueOf(extraDays)), // precio base extra
-                extensionSubtotal // total con recargos de extensión incluidos
-        );
-
+        ExtensionQuoteResponseDTO data = bookingService.quoteExtension(id, extraDays);
+        
         return ResponseEntity.ok(
                 GeneralResponse.<ExtensionQuoteResponseDTO>builder()
                         .message("Extension Information")

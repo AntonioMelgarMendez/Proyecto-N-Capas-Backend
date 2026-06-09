@@ -12,5 +12,7 @@ public interface ReservationService {
     BookingExtensionResponseDTO processExtensionPayment(Long reservationId, int extraDays);
     void cancelOrReleaseExpiredBooking(Long bookingId);
     CancellationQuoteResponseDTO quoteCancellation(Long reservationId);
+    ExtensionQuoteResponseDTO quoteExtension(Long id, int extraDays);
     CancellationResponseDTO confirmCancellation(Long reservationId);
+
 }
