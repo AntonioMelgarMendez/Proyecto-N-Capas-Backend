@@ -1,5 +1,6 @@
 package com.proyecto.proyectoncapas.dto.response;
 
+import com.proyecto.proyectoncapas.utils.enums.ReservationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,6 @@ public class ReservationResponseDTO {
     private LocalDate checkOutDate;
     private Integer numberOfGuests;
     private BigDecimal totalAmount;
-    private String status;
+    private ReservationStatus status;
 
 }
