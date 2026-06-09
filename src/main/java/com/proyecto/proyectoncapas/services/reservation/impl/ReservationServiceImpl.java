@@ -42,7 +42,7 @@ public class ReservationServiceImpl implements ReservationService {
             throw new InvalidReservationException("La fecha de salida debe ser posterior a la de entrada");
         }
 
-        if (!checkIn.isBefore(LocalDate.now())) {
+        if (checkIn.isBefore(LocalDate.now())) {
             throw new InvalidReservationException("La fecha de entrada debe ser de ahora en adelante");
         }
 

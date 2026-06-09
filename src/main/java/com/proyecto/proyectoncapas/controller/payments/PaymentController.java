@@ -39,6 +39,18 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/confirm-session/{sessionId}")
+    public ResponseEntity<GeneralResponse<PaymentStatusResponseDTO>> confirmCheckoutSession(@PathVariable String sessionId) {
+        String status = paymentService.confirmPaymentBySessionId(sessionId);
+
+        GeneralResponse<PaymentStatusResponseDTO> response = GeneralResponse.<PaymentStatusResponseDTO>builder()
+                .message("Payment session verified successfully")
+                .data(new PaymentStatusResponseDTO(status))
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/status/{reservationId}")
     public ResponseEntity<GeneralResponse<PaymentStatusResponseDTO>> getPaymentStatus(@PathVariable Long reservationId) {
         String status = paymentService.getPaymentStatus(reservationId);

@@ -6,8 +6,6 @@ import com.proyecto.proyectoncapas.entities.Reservation;
 import com.proyecto.proyectoncapas.utils.enums.ReservationStatus;
 
 public class ReservationMapper {
-...
-
 
     public static ReservationResponseDTO toResponseDTO(Reservation reservation) {
         return ReservationResponseDTO.builder()
@@ -16,7 +14,7 @@ public class ReservationMapper {
                 .checkOutDate(reservation.getCheckOutDate())
                 .numberOfGuests(reservation.getNumberOfGuests())
                 .totalAmount(reservation.getTotalAmount())
-                .status(reservation.getStatus())
+                .status(String.valueOf(reservation.getStatus()))
                 .build();
     }
 
@@ -38,11 +36,7 @@ public class ReservationMapper {
                 .checkOutDate(dto.getCheckOutDate())
                 .numberOfGuests(dto.getNumberOfGuests())
                 .totalAmount(dto.getTotalAmount())
-                    .status(ReservationStatus.PENDING)
-                    .build();
-38:                 .status(ReservationStatus.PENDING)
-                        .build();
-38:                 .status("PENDING")
-                        .build();
+                .status(ReservationStatus.PENDING_PAYMENT)
+                .build();
     }
 }

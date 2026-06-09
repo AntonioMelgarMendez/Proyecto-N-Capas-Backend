@@ -26,6 +26,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/webhooks/**").permitAll()
                         .requestMatchers("/api/contracts/**").permitAll()
                         .requestMatchers("/api/identity/**").permitAll()
+                        .requestMatchers("/api/reservations/**").permitAll()
                         .requestMatchers("/api/properties/**").permitAll()
                         .requestMatchers("/api/reviews/**").permitAll()
                         .anyRequest().authenticated()

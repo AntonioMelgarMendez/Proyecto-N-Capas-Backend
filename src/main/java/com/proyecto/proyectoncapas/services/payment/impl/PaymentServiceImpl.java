@@ -31,7 +31,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final ReservationRepository reservationRepository;
     private final PaymentRepository paymentRepository;
 
-    @Value("${frontend.url:http://localhost:3000}")
+    @Value("${frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
     @Override
@@ -43,7 +43,7 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
-                    .setSuccessUrl(frontendUrl + "/payment/success?reservationId=" + reservationId)
+                    .setSuccessUrl(frontendUrl + "/payment/success?reservationId=" + reservationId + "&session_id={CHECKOUT_SESSION_ID}")
                     .setCancelUrl(frontendUrl + "/payment/cancel")
                     .addLineItem(
                             SessionCreateParams.LineItem.builder()
@@ -90,24 +90,56 @@ public class PaymentServiceImpl implements PaymentService {
             Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
 
             if (session != null) {
-                Payment payment = paymentRepository.findByTransactionId(session.getId())
-                        .orElseThrow(() -> new RuntimeException("Payment record not found for Session ID: " + session.getId()));
-
-                payment.setStatus("COMPLETED");
-                payment.setPaidAt(LocalDateTime.now());
-
-                if(session.getPaymentIntent() != null) {
-                    payment.setTransactionId(session.getPaymentIntent());
-                }
-
-                paymentRepository.save(payment);
-                Reservation reservation = payment.getReservation();
-                reservation.setStatus(ReservationStatus.CONFIRMED);
-                reservationRepository.save(reservation);
-
-                log.info("Payment successfully confirmed for Reservation ID: {}", reservation.getId());
+                completePaymentForSession(session);
             }
         }
+    }
+
+    @Override
+    @Transactional
+    public String confirmPaymentBySessionId(String sessionId) {
+        Payment payment = paymentRepository.findByTransactionId(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found for session ID: " + sessionId));
+
+        if ("COMPLETED".equals(payment.getStatus())) {
+            return payment.getStatus();
+        }
+
+        try {
+            Session session = Session.retrieve(sessionId);
+            if (!"paid".equals(session.getPaymentStatus())) {
+                return payment.getStatus();
+            }
+
+            completePaymentForSession(session);
+            return "COMPLETED";
+        } catch (StripeException e) {
+            log.error("Error retrieving Stripe session {}", sessionId, e);
+            throw new RuntimeException("Failed to verify payment session");
+        }
+    }
+
+    private void completePaymentForSession(Session session) {
+        Payment payment = paymentRepository.findByTransactionId(session.getId())
+                .orElseThrow(() -> new RuntimeException("Payment record not found for Session ID: " + session.getId()));
+
+        if ("COMPLETED".equals(payment.getStatus())) {
+            return;
+        }
+
+        payment.setStatus("COMPLETED");
+        payment.setPaidAt(LocalDateTime.now());
+
+        if (session.getPaymentIntent() != null) {
+            payment.setTransactionId(session.getPaymentIntent());
+        }
+
+        paymentRepository.save(payment);
+        Reservation reservation = payment.getReservation();
+        reservation.setStatus(ReservationStatus.CONFIRMED);
+        reservationRepository.save(reservation);
+
+        log.info("Payment successfully confirmed for Reservation ID: {}", reservation.getId());
     }
     @Override
     @Transactional
