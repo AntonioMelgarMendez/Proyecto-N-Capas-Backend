@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.*;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,23 +18,26 @@ public class ReservationRequestDTO {
 
     @NotNull
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    @PastOrPresent
+    @FutureOrPresent
     private LocalDate checkInDate;
 
     @NotNull
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    @Past
+    @Future
     private LocalDate checkOutDate;
 
     @NotNull
     @Min(1)
     private Integer numberOfGuests;
 
-    private boolean includeCleaning = true; // Por defecto true, por si no lo envían
+    private BigDecimal totalAmount;
+
+    private boolean includeCleaning = true;
     private boolean includeInsurance = false;
 
     @NotNull
     private Long propertyId;
     @NotNull
     private Long tenantId;
+
 }
