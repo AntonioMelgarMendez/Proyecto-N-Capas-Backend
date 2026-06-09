@@ -77,6 +77,16 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ReservationNotFoundException.class)
+    public ResponseEntity<ApiError> handleReservationNotFound(ReservationNotFoundException ex) {
+        return buildResponseEntity(HttpStatus.NOT_FOUND, "Reservation Not Found", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(InvalidReservationException.class)
+    public ResponseEntity<ApiError> handleInvalidReservation(InvalidReservationException ex) {
+        return buildResponseEntity(HttpStatus.CONFLICT, "Reservation Logic Error", ex.getMessage(), null);
+    }
+
 
 
     // Error mas rapido

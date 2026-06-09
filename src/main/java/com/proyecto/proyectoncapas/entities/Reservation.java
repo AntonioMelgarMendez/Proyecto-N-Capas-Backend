@@ -1,5 +1,6 @@
 package com.proyecto.proyectoncapas.entities;
 
+import com.proyecto.proyectoncapas.utils.enums.ReservationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,7 +49,8 @@ public class Reservation {
 
     // Estados: "PENDING", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"
     @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private ReservationStatus status;
 
     @Column(name = "cancellation_date")
     private LocalDate cancellationDate;
