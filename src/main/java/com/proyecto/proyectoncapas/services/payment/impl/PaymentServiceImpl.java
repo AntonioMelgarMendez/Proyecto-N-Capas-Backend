@@ -5,6 +5,7 @@ import com.proyecto.proyectoncapas.entities.Reservation;
 import com.proyecto.proyectoncapas.repository.PaymentRepository;
 import com.proyecto.proyectoncapas.repository.ReservationRepository;
 import com.proyecto.proyectoncapas.services.payment.PaymentService;
+import com.proyecto.proyectoncapas.utils.enums.ReservationStatus;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Refund;
@@ -101,7 +102,7 @@ public class PaymentServiceImpl implements PaymentService {
 
                 paymentRepository.save(payment);
                 Reservation reservation = payment.getReservation();
-                reservation.setStatus("CONFIRMED");
+                reservation.setStatus(ReservationStatus.CONFIRMED);
                 reservationRepository.save(reservation);
 
                 log.info("Payment successfully confirmed for Reservation ID: {}", reservation.getId());
