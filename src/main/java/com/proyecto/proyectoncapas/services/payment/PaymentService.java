@@ -3,4 +3,7 @@ import com.stripe.model.Event;
 public interface PaymentService {
     String startPaymentReservation(Long reservationId);
     void confirmPayment(Event event);
+    String confirmPaymentBySessionId(String sessionId);
+    void refundSecurityDeposit(Long reservationId);
+    String getPaymentStatus(Long reservationId);
 }
