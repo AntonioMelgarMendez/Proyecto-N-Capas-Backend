@@ -28,10 +28,9 @@ public class Reservation {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
-    // --- Relación pendiente (se activa cuando el módulo de Auth esté listo) ---
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "tenant_id", nullable = false)
-    // private User tenant;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = true)
+    private User tenant;
 
     // -----------------------------------------------------------------------------------
 

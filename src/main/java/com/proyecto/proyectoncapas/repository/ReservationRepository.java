@@ -4,10 +4,12 @@ import com.proyecto.proyectoncapas.entities.Reservation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
     boolean existsByProperty_Id(Long propertyId);
+    List<Reservation> findByTenant_IdOrderByCheckInDateDesc(Long tenantId);
 }

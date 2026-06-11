@@ -30,4 +30,4 @@ public interface PropertyAvailabilityRepository extends JpaRepository<PropertyAv
 
     @Modifying
     @Query("DELETE FROM PropertyAvailability a WHERE a.reservation.id = :reservationId")
-    void deleteByReservationId(@Param("bookingId") Long reservationId);}
+    void deleteByReservationId(@Param("reservationId") Long reservationId);}

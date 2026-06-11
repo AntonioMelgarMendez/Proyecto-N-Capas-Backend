@@ -12,6 +12,11 @@ import com.proyecto.proyectoncapas.exception.ResourceNotFoundException;
 import com.proyecto.proyectoncapas.repository.PropertyAvailabilityRepository;
 import com.proyecto.proyectoncapas.repository.PropertyRepository;
 import com.proyecto.proyectoncapas.repository.ReservationRepository;
+import com.proyecto.proyectoncapas.repository.UserRepository;
+import com.proyecto.proyectoncapas.repository.ContractRepository;
+import com.proyecto.proyectoncapas.entities.User;
+import com.proyecto.proyectoncapas.entities.Contract;
+import com.proyecto.proyectoncapas.entities.PropertyPhoto;
 import com.proyecto.proyectoncapas.services.reservation.BookingContext;
 import com.proyecto.proyectoncapas.services.reservation.ReservationService;
 import com.proyecto.proyectoncapas.utils.enums.ReservationStatus;
@@ -33,6 +38,8 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final PropertyAvailabilityRepository availabilityRepository;
     private final PriceCalculationService priceCalculationService;
+    private final UserRepository userRepository;
+    private final ContractRepository contractRepository;
 
     @Transactional
     public ReservationResponseDTO createBooking(Long propertyId, ReservationRequestDTO request) {
@@ -90,8 +97,13 @@ public class ReservationServiceImpl implements ReservationService {
         booking.setProperty(property);
         booking.setCheckInDate(checkIn);
         booking.setCheckOutDate(checkOut);
+        booking.setNumberOfGuests(request.getNumberOfGuests());
         booking.setTotalAmount(finalPrice);
         booking.setStatus(ReservationStatus.PENDING_PAYMENT);
+
+        User tenant = userRepository.findById(request.getTenantId())
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant not found with ID: " + request.getTenantId()));
+        booking.setTenant(tenant);
 
         Reservation savedBooking = reservationRepository.save(booking);
 
@@ -133,7 +145,7 @@ public class ReservationServiceImpl implements ReservationService {
         BookingContext context = new BookingContext(
                 totalNights,
                 property.getPricePerNight(),
-                booking.getNumberOfGuests(), // <-- CORRECCIÓN: Extraído de la reserva original
+                booking.getNumberOfGuests() != null ? booking.getNumberOfGuests() : 1, // <-- CORRECCIÓN: Null-safe fallback
                 booking.getCheckInDate(),
                 today,                       // Activamos la lógica de cancelación tardía proporcional
                 false,
@@ -182,17 +194,21 @@ public class ReservationServiceImpl implements ReservationService {
             throw new InvalidReservationException("Los días para la extensión ya no están disponibles.");
         }
 
-        // 4. Calcular el precio final idéntico al quote
+        // 4. Calcular el precio final idéntico al quote (filtrando limpieza y seguro)
+        List<PropertyRule> rulesToApply = property.getRules().stream()
+                .filter(rule -> rule.getRuleType() != RuleType.CLEANING_FEE && rule.getRuleType() != RuleType.INSURANCE_FEE)
+                .toList();
+
         BookingContext extensionContext = new BookingContext(
                 extraDays,
                 property.getPricePerNight(),
-                originalBooking.getNumberOfGuests(),   // <-- CORRECCIÓN: Extraído de la reserva original
+                originalBooking.getNumberOfGuests() != null ? originalBooking.getNumberOfGuests() : 1,   // <-- CORRECCIÓN: Null-safe fallback
                 originalBooking.getCheckInDate(),
                 null,
                 true,
                 extraDays
         );
-        BigDecimal totalToPay = priceCalculationService.calculateFinalPrice(property, extensionContext);
+        BigDecimal totalToPay = priceCalculationService.calculateFinalPriceWithCustomRules(rulesToApply, extensionContext);
 
         // 5. [AQUÍ INTEGRAS TU PASARELA] Simular o procesar el pago real
         // paymentService.charge(userId, totalToPay);
@@ -235,21 +251,52 @@ public class ReservationServiceImpl implements ReservationService {
         BookingContext extensionContext = new BookingContext(
                 extraDays,
                 property.getPricePerNight(),
-                originalBooking.getNumberOfGuests(),
+                originalBooking.getNumberOfGuests() != null ? originalBooking.getNumberOfGuests() : 1,
                 originalBooking.getCheckInDate(),
                 null,
                 true,
                 extraDays
         );
 
-        // 3. El motor calcula el costo de la extensión con las reglas de la propiedad
-        BigDecimal extensionSubtotal = priceCalculationService.calculateFinalPrice(property, extensionContext);
+        // 3. El motor calcula el costo de la extensión con las reglas de la propiedad (filtrando limpieza y seguro)
+        List<PropertyRule> rulesToApply = property.getRules().stream()
+                .filter(rule -> rule.getRuleType() != RuleType.CLEANING_FEE && rule.getRuleType() != RuleType.INSURANCE_FEE)
+                .toList();
+        BigDecimal extensionSubtotal = priceCalculationService.calculateFinalPriceWithCustomRules(rulesToApply, extensionContext);
 
-        // 4. Preparar la respuesta para el cliente
+        // 4. Calcular el desglose
+        BigDecimal baseAmount = property.getPricePerNight().multiply(BigDecimal.valueOf(extraDays));
+        
+        BigDecimal extensionFeePerNight = BigDecimal.ZERO;
+        if (property.getRules() != null) {
+            for (PropertyRule rule : property.getRules()) {
+                if (rule.getRuleType() == RuleType.STAY_EXTENSION_FEE) {
+                    extensionFeePerNight = rule.getValue();
+                }
+            }
+        }
+        BigDecimal extensionFeeTotal = extensionFeePerNight.multiply(BigDecimal.valueOf(extraDays));
+
+        BigDecimal baseRentPlusFee = baseAmount.add(extensionFeeTotal);
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        BigDecimal surchargeAmount = BigDecimal.ZERO;
+
+        if (baseRentPlusFee.compareTo(extensionSubtotal) > 0) {
+            discountAmount = baseRentPlusFee.subtract(extensionSubtotal);
+        } else if (extensionSubtotal.compareTo(baseRentPlusFee) > 0) {
+            surchargeAmount = extensionSubtotal.subtract(baseRentPlusFee);
+        }
+
+        // 5. Preparar la respuesta para el cliente
         return new ExtensionQuoteResponseDTO(
                 id,
                 extraDays,
-                property.getPricePerNight().multiply(BigDecimal.valueOf(extraDays)),
+                property.getPricePerNight(),
+                baseAmount,
+                extensionFeePerNight,
+                extensionFeeTotal,
+                discountAmount,
+                surchargeAmount,
                 extensionSubtotal
         );
     }
@@ -287,5 +334,89 @@ public class ReservationServiceImpl implements ReservationService {
                 quote.getPenaltyFee(),
                 quote.getRefundAmount()
         );
+    }
+
+    @Override
+    @Transactional
+    public ReservationQuoteResponseDTO calculateQuote(Long propertyId, ReservationRequestDTO request) {
+        LocalDate checkIn = request.getCheckInDate();
+        LocalDate checkOut = request.getCheckOutDate();
+        if (!checkOut.isAfter(checkIn)) {
+            throw new InvalidReservationException("La fecha de salida debe ser posterior a la de entrada");
+        }
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Propiedad no encontrada"));
+
+        List<PropertyRule> rulesToApply = property.getRules().stream()
+                .filter(rule -> {
+                    if (rule.getRuleType() == RuleType.CLEANING_FEE && !request.isIncludeCleaning()) {
+                        return false;
+                    }
+                    if (rule.getRuleType() == RuleType.INSURANCE_FEE && !request.isIncludeInsurance()) {
+                        return false;
+                    }
+                    return true;
+                })
+                .toList();
+
+        int totalNights = (int) ChronoUnit.DAYS.between(checkIn, checkOut);
+        BookingContext context = new BookingContext(
+                totalNights,
+                property.getPricePerNight(),
+                request.getNumberOfGuests(),
+                checkIn,
+                null,
+                false,
+                0
+        );
+
+        BigDecimal finalPrice = priceCalculationService.calculateFinalPriceWithCustomRules(rulesToApply, context);
+
+        return ReservationQuoteResponseDTO.builder()
+                .propertyId(propertyId)
+                .checkInDate(checkIn)
+                .checkOutDate(checkOut)
+                .numberOfGuests(request.getNumberOfGuests())
+                .totalNights(totalNights)
+                .basePricePerNight(property.getPricePerNight())
+                .totalAmount(finalPrice)
+                .build();
+    }
+
+    @Override
+    public List<TenantReservationResponseDTO> getTenantReservations(Long tenantId) {
+        List<Reservation> reservations = reservationRepository.findByTenant_IdOrderByCheckInDateDesc(tenantId);
+        return reservations.stream()
+                .map(r -> {
+                    String contractStatus = contractRepository.findByReservationId(r.getId())
+                            .map(Contract::getStatus)
+                            .map(status -> "SIGNED".equalsIgnoreCase(status) ? "Firmado" : "Pendiente")
+                            .orElse("Pendiente");
+
+                    String coverPhoto = null;
+                    if (r.getProperty().getPhotos() != null && !r.getProperty().getPhotos().isEmpty()) {
+                        coverPhoto = r.getProperty().getPhotos().get(0).getS3Url();
+                    }
+
+                    // Deterministic 6-digit access PIN based on reservation id
+                    String pin = String.valueOf((r.getId() * 179 + 100000) % 900000 + 100000);
+
+                    return TenantReservationResponseDTO.builder()
+                            .id(r.getId())
+                            .propertyId(r.getProperty().getId())
+                            .propertyTitle(r.getProperty().getTitle())
+                            .propertyCity(r.getProperty().getCity())
+                            .propertyCoverPhoto(coverPhoto)
+                            .checkInDate(r.getCheckInDate())
+                            .checkOutDate(r.getCheckOutDate())
+                            .numberOfGuests(r.getNumberOfGuests())
+                            .totalAmount(r.getTotalAmount())
+                            .status(r.getStatus().name())
+                            .contractStatus(contractStatus)
+                            .pin(pin)
+                            .build();
+                })
+                .toList();
     }
 }
