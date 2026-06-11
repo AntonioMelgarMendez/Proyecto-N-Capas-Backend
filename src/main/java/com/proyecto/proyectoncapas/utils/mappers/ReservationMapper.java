@@ -14,7 +14,7 @@ public class ReservationMapper {
                 .checkOutDate(reservation.getCheckOutDate())
                 .numberOfGuests(reservation.getNumberOfGuests())
                 .totalAmount(reservation.getTotalAmount())
-                .status(String.valueOf(reservation.getStatus()))
+                .status(reservation.getStatus())
                 .build();
     }
 

@@ -26,7 +26,6 @@ import java.util.List;
 public class ReservationController {
 
     private final AvailabilityService availabilityService;
-    private PriceCalculationService priceCalculationService;
     private final ReservationService bookingService;
 
     @GetMapping("/{id}/calendar")
@@ -58,6 +57,21 @@ public class ReservationController {
                         .build()
         );
 
+    }
+
+    @PostMapping("/{id}/quote")
+    public ResponseEntity<GeneralResponse<ReservationQuoteResponseDTO>> quoteReservation(
+            @PathVariable Long id,
+            @Valid @RequestBody ReservationRequestDTO reservationRequestDTO) {
+
+        ReservationQuoteResponseDTO quote = bookingService.calculateQuote(id, reservationRequestDTO);
+
+        return ResponseEntity.ok(
+                GeneralResponse.<ReservationQuoteResponseDTO>builder()
+                        .message("Reservation Quote Calculated Successfully")
+                        .data(quote)
+                        .build()
+        );
     }
 
     @PostMapping("/{id}/extend/quote")
@@ -117,6 +131,17 @@ public class ReservationController {
                 GeneralResponse.<CancellationResponseDTO>builder()
                         .message("Reservation cancelled successfully. Calendar days released.")
                         .data(data)
+                        .build()
+        );
+    }
+
+    @GetMapping("/tenant/{tenantId}")
+    public ResponseEntity<GeneralResponse<List<TenantReservationResponseDTO>>> getTenantReservations(@PathVariable Long tenantId) {
+        List<TenantReservationResponseDTO> list = bookingService.getTenantReservations(tenantId);
+        return ResponseEntity.ok(
+                GeneralResponse.<List<TenantReservationResponseDTO>>builder()
+                        .message("Reservations retrieved successfully")
+                        .data(list)
                         .build()
         );
     }
