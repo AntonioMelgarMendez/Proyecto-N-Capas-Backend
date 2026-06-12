@@ -20,6 +20,12 @@ stripe:
   webhook:
     secret: ${STRIPE_WEBHOOK_SECRET:whsec_temporal_por_definir}
 
+frontend:
+  url: http://localhost:5173
+
+payment:
+  reservation-expiration-minutes: 30
+
 # --- Configuración de AWS S3 ---
 aws:
   s3:
