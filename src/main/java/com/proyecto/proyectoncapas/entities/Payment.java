@@ -1,10 +1,12 @@
 package com.proyecto.proyectoncapas.entities;
 
+import com.proyecto.proyectoncapas.utils.enums.PaymentType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -20,7 +22,6 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relación Muchos a Uno: Una reserva puede tener múltiples intentos de pago
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reservation_id", nullable = false)
     private Reservation reservation;
@@ -28,13 +29,24 @@ public class Payment {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    // "PENDING", "COMPLETED", "FAILED", "REFUNDED"
     @Column(nullable = false)
     private String status;
 
-    // "CREDIT_CARD", "STRIPE"
     @Column(name = "payment_method")
     private String paymentMethod;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_type")
+    private PaymentType paymentType;
+
+    @Column(name = "extra_days")
+    private Integer extraDays;
+
+    @Column(name = "extension_request_id")
+    private Long extensionRequestId;
+
+    @Column(name = "refunded_amount", precision = 10, scale = 2)
+    private BigDecimal refundedAmount;
 
     @Column(name = "transaction_id", unique = true)
     private String transactionId;
@@ -48,5 +60,8 @@ public class Payment {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.refundedAmount == null) {
+            this.refundedAmount = BigDecimal.ZERO;
+        }
     }
 }

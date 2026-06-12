@@ -2,21 +2,15 @@ package com.proyecto.proyectoncapas.controller.reservation;
 
 import com.proyecto.proyectoncapas.dto.request.ReservationRequestDTO;
 import com.proyecto.proyectoncapas.dto.response.*;
-import com.proyecto.proyectoncapas.entities.Property;
-import com.proyecto.proyectoncapas.entities.Reservation;
+import com.proyecto.proyectoncapas.exception.InvalidPaymentStateException;
 import com.proyecto.proyectoncapas.services.reservation.AvailabilityService;
-import com.proyecto.proyectoncapas.services.reservation.BookingContext;
 import com.proyecto.proyectoncapas.services.reservation.ReservationService;
-import com.proyecto.proyectoncapas.services.reservation.impl.PriceCalculationService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -43,10 +37,10 @@ public class ReservationController {
         );
     }
 
-        @PostMapping("/{id}/book")
-        public ResponseEntity<GeneralResponse<ReservationResponseDTO>> bookProperty( @PathVariable Long id,
-                @Valid @RequestBody ReservationRequestDTO reservationRequestDTO) {
-
+    @PostMapping("/{id}/book")
+    public ResponseEntity<GeneralResponse<ReservationResponseDTO>> bookProperty(
+            @PathVariable Long id,
+            @Valid @RequestBody ReservationRequestDTO reservationRequestDTO) {
 
         ReservationResponseDTO newBooking = bookingService.createBooking(id, reservationRequestDTO);
 
@@ -56,7 +50,6 @@ public class ReservationController {
                         .data(newBooking)
                         .build()
         );
-
     }
 
     @PostMapping("/{id}/quote")
@@ -80,36 +73,101 @@ public class ReservationController {
             @RequestParam int extraDays) {
 
         ExtensionQuoteResponseDTO data = bookingService.quoteExtension(id, extraDays);
-        
+
         return ResponseEntity.ok(
                 GeneralResponse.<ExtensionQuoteResponseDTO>builder()
                         .message("Extension Information")
                         .data(data)
                         .build()
         );
-
     }
 
-    @PostMapping("/{id}/extend/pay")
-    public ResponseEntity<GeneralResponse<BookingExtensionResponseDTO>> payExtension(
+    @PostMapping("/{id}/extend/request")
+    public ResponseEntity<GeneralResponse<ExtensionRequestResponseDTO>> requestExtension(
             @PathVariable Long id,
             @RequestParam int extraDays) {
 
-        // Ejecuta la lógica de negocio, validación de disponibilidad, cobro y persistencia
-        BookingExtensionResponseDTO data = bookingService.processExtensionPayment(id, extraDays);
+        ExtensionRequestResponseDTO data = bookingService.requestExtension(id, extraDays);
 
         return ResponseEntity.ok(
-                GeneralResponse.<BookingExtensionResponseDTO>builder()
-                        .message("Extension paid and confirmed successfully")
+                GeneralResponse.<ExtensionRequestResponseDTO>builder()
+                        .message("Extension request submitted successfully")
                         .data(data)
                         .build()
         );
     }
 
+    @PostMapping("/extend/{requestId}/approve")
+    public ResponseEntity<GeneralResponse<ExtensionRequestResponseDTO>> approveExtension(
+            @PathVariable Long requestId,
+            @RequestParam Long landlordId) {
+
+        ExtensionRequestResponseDTO data = bookingService.approveExtension(requestId, landlordId);
+
+        return ResponseEntity.ok(
+                GeneralResponse.<ExtensionRequestResponseDTO>builder()
+                        .message("Extension request approved")
+                        .data(data)
+                        .build()
+        );
+    }
+
+    @PostMapping("/extend/{requestId}/reject")
+    public ResponseEntity<GeneralResponse<ExtensionRequestResponseDTO>> rejectExtension(
+            @PathVariable Long requestId,
+            @RequestParam Long landlordId) {
+
+        ExtensionRequestResponseDTO data = bookingService.rejectExtension(requestId, landlordId);
+
+        return ResponseEntity.ok(
+                GeneralResponse.<ExtensionRequestResponseDTO>builder()
+                        .message("Extension request rejected")
+                        .data(data)
+                        .build()
+        );
+    }
+
+    @GetMapping("/extend/landlord/{landlordId}")
+    public ResponseEntity<GeneralResponse<List<ExtensionRequestLandlordResponseDTO>>> getLandlordExtensionRequests(
+            @PathVariable Long landlordId,
+            @RequestParam(required = false) String status) {
+
+        List<ExtensionRequestLandlordResponseDTO> data = bookingService.getLandlordExtensionRequests(landlordId, status);
+
+        return ResponseEntity.ok(
+                GeneralResponse.<List<ExtensionRequestLandlordResponseDTO>>builder()
+                        .message("Extension requests retrieved successfully")
+                        .data(data)
+                        .build()
+        );
+    }
+
+    @GetMapping("/{reservationId}/extend/requests")
+    public ResponseEntity<GeneralResponse<List<ExtensionRequestResponseDTO>>> getExtensionRequestsByReservation(
+            @PathVariable Long reservationId) {
+
+        List<ExtensionRequestResponseDTO> data = bookingService.getExtensionRequestsByReservation(reservationId);
+
+        return ResponseEntity.ok(
+                GeneralResponse.<List<ExtensionRequestResponseDTO>>builder()
+                        .message("Extension requests retrieved successfully")
+                        .data(data)
+                        .build()
+        );
+    }
+
+    @PostMapping("/{id}/extend/pay")
+    public ResponseEntity<GeneralResponse<String>> payExtension(
+            @PathVariable Long id,
+            @RequestParam int extraDays) {
+
+        throw new InvalidPaymentStateException(
+                "Direct extension payment is disabled. Request approval and use POST /api/payments/checkout/extension/{extensionRequestId}"
+        );
+    }
 
     @PostMapping("/{id}/cancel/quote")
-    public ResponseEntity<GeneralResponse<CancellationQuoteResponseDTO>> quoteCancellation(
-            @PathVariable Long id) {
+    public ResponseEntity<GeneralResponse<CancellationQuoteResponseDTO>> quoteCancellation(@PathVariable Long id) {
 
         CancellationQuoteResponseDTO data = bookingService.quoteCancellation(id);
 
@@ -122,8 +180,7 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/cancel/confirm")
-    public ResponseEntity<GeneralResponse<CancellationResponseDTO>> confirmCancellation(
-            @PathVariable Long id) {
+    public ResponseEntity<GeneralResponse<CancellationResponseDTO>> confirmCancellation(@PathVariable Long id) {
 
         CancellationResponseDTO data = bookingService.confirmCancellation(id);
 

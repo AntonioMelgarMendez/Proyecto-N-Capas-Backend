@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
@@ -19,47 +21,73 @@ public class PaymentController {
     public ResponseEntity<GeneralResponse<PaymentInitResponseDTO>> createCheckoutSession(@PathVariable Long reservationId) {
         String checkoutUrl = paymentService.startPaymentReservation(reservationId);
 
-        GeneralResponse<PaymentInitResponseDTO> response = GeneralResponse.<PaymentInitResponseDTO>builder()
-                .message("Checkout session created successfully")
-                .data(new PaymentInitResponseDTO(checkoutUrl))
-                .build();
+        return ResponseEntity.ok(
+                GeneralResponse.<PaymentInitResponseDTO>builder()
+                        .message("Checkout session created successfully")
+                        .data(new PaymentInitResponseDTO(checkoutUrl))
+                        .build()
+        );
+    }
 
-        return ResponseEntity.ok(response);
+    @PostMapping("/checkout/extension/{extensionRequestId}")
+    public ResponseEntity<GeneralResponse<PaymentInitResponseDTO>> createExtensionCheckoutSession(
+            @PathVariable Long extensionRequestId) {
+        String checkoutUrl = paymentService.startExtensionPayment(extensionRequestId);
+
+        return ResponseEntity.ok(
+                GeneralResponse.<PaymentInitResponseDTO>builder()
+                        .message("Extension checkout session created successfully")
+                        .data(new PaymentInitResponseDTO(checkoutUrl))
+                        .build()
+        );
+    }
+
+    @PostMapping("/cancel/{reservationId}")
+    public ResponseEntity<GeneralResponse<Void>> cancelCheckout(@PathVariable Long reservationId) {
+        paymentService.handleCheckoutCancelled(reservationId);
+
+        return ResponseEntity.ok(
+                GeneralResponse.<Void>builder()
+                        .message("Checkout cancelled and reservation released successfully")
+                        .build()
+        );
     }
 
     @PostMapping("/refund/{reservationId}")
-    public ResponseEntity<GeneralResponse<String>> refundSecurityDeposit(@PathVariable Long reservationId) {
-        paymentService.refundSecurityDeposit(reservationId);
+    public ResponseEntity<GeneralResponse<String>> refundSecurityDeposit(
+            @PathVariable Long reservationId,
+            @RequestParam(required = false) BigDecimal amount) {
+        paymentService.refundSecurityDeposit(reservationId, amount);
 
-        GeneralResponse<String> response = GeneralResponse.<String>builder()
-                .message("Refund processed successfully")
-                .data("Security deposit has been refunded")
-                .build();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                GeneralResponse.<String>builder()
+                        .message("Refund processed successfully")
+                        .data("Refund has been processed")
+                        .build()
+        );
     }
 
     @PostMapping("/confirm-session/{sessionId}")
     public ResponseEntity<GeneralResponse<PaymentStatusResponseDTO>> confirmCheckoutSession(@PathVariable String sessionId) {
         String status = paymentService.confirmPaymentBySessionId(sessionId);
 
-        GeneralResponse<PaymentStatusResponseDTO> response = GeneralResponse.<PaymentStatusResponseDTO>builder()
-                .message("Payment session verified successfully")
-                .data(new PaymentStatusResponseDTO(status))
-                .build();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                GeneralResponse.<PaymentStatusResponseDTO>builder()
+                        .message("Payment session verified successfully")
+                        .data(new PaymentStatusResponseDTO(status))
+                        .build()
+        );
     }
 
     @GetMapping("/status/{reservationId}")
     public ResponseEntity<GeneralResponse<PaymentStatusResponseDTO>> getPaymentStatus(@PathVariable Long reservationId) {
         String status = paymentService.getPaymentStatus(reservationId);
 
-        GeneralResponse<PaymentStatusResponseDTO> response = GeneralResponse.<PaymentStatusResponseDTO>builder()
-                .message("Payment status retrieved successfully")
-                .data(new PaymentStatusResponseDTO(status))
-                .build();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                GeneralResponse.<PaymentStatusResponseDTO>builder()
+                        .message("Payment status retrieved successfully")
+                        .data(new PaymentStatusResponseDTO(status))
+                        .build()
+        );
     }
 }
