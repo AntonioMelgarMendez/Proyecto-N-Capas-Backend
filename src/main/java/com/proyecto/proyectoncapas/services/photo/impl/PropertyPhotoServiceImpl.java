@@ -46,7 +46,10 @@ public class PropertyPhotoServiceImpl implements PropertyPhotoService {
 
         photo = propertyPhotoRepository.save(photo);
         log.info("Photo uploaded for Property ID: {}, S3 key: {}", propertyId, s3Key);
-        return PropertyPhotoMapper.toResponseDTO(photo);
+        
+        PropertyPhotoResponseDTO responseDTO = PropertyPhotoMapper.toResponseDTO(photo);
+        responseDTO.setS3Url(s3Url);
+        return responseDTO;
     }
 
     @Override
@@ -56,7 +59,11 @@ public class PropertyPhotoServiceImpl implements PropertyPhotoService {
             throw new ResourceNotFoundException("Property not found with ID: " + propertyId);
         }
         return propertyPhotoRepository.findByPropertyId(propertyId).stream()
-                .map(PropertyPhotoMapper::toResponseDTO)
+                .map(photo -> {
+                    PropertyPhotoResponseDTO dto = PropertyPhotoMapper.toResponseDTO(photo);
+                    dto.setS3Url(s3Service.getFileUrl(photo.getS3Key()));
+                    return dto;
+                })
                 .toList();
     }
 

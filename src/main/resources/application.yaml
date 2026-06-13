@@ -29,9 +29,9 @@ payment:
 # --- Configuración de AWS S3 ---
 aws:
   s3:
-    bucket-name: proyecto-ncapas-dev
-    region: us-east-1
-    endpoint-override: http://localhost:9000
+    bucket-name: ${BUCKET_NAME:proyecto-ncapas-dev}
+    region: ${OCI_REGION:us-east-1}
+    endpoint-override: ${S3_ENDPOINT:http://localhost:9000}
   credentials:
-    access-key-id: minioadmin
-    secret-access-key: minioadmin
+    access-key-id: ${OCI_S3_ACCESS_KEY:minioadmin}
+    secret-access-key: ${OCI_S3_SECRET_KEY:minioadmin}
