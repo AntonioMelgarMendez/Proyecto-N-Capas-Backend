@@ -3,9 +3,8 @@ FROM eclipse-temurin:21-jre-alpine
 # Crear un directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar el archivo .jar compilado por GitHub Actions desde la carpeta target hacia el contenedor
-# Asegúrate de cambiar 'proyectoNCapas-0.0.1-SNAPSHOT.jar' por el nombre real de tu archivo compilado
-COPY target/*.jar app.jar
+# Copiar el archivo .jar compilado por GitHub Actions desde la carpeta build/libs hacia el contenedor
+COPY build/libs/*.jar app.jar
 
 # Exponer el puerto estándar que espera Cloud Run
 EXPOSE 8080
