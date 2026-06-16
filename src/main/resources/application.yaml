@@ -29,3 +29,9 @@ aws:
   credentials:
     access-key-id: minioadmin
     secret-access-key: minioadmin
+
+# --- Configuración de JWT ---
+security:
+  jwt:
+    secret-key: ${JWT_SECRET}
+    expiration-time: ${JWT_EXPIRATION}

@@ -58,6 +58,21 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // Maneja el caso de que un usuario no este habilitado
+    @ExceptionHandler(DisabledUserException.class)
+    public ResponseEntity<ApiError> handleException(DisabledUserException ex) {
+        ApiError apiError = new ApiError();
+
+        apiError.setTimestamp(LocalDateTime.now());
+        apiError.setStatus(HttpStatus.FORBIDDEN.value());
+        apiError.setError(HttpStatus.FORBIDDEN.getReasonPhrase());
+        apiError.setMessage(ex.getMessage());
+        apiError.setDetails(null);
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(apiError);
+    }
+
     // Maneja cualquier otra excepción no controlada
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleAllOtherExceptions(Exception ex) {
