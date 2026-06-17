@@ -8,6 +8,7 @@ import com.proyecto.proyectoncapas.services.analytics.AnalyticsService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -22,7 +23,37 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public List<OccupancyMetricsResponseDTO> getOccupancyMetrics(Long landlordId, LocalDate startDate, LocalDate endDate) {
-        return null; // TODO
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        List<Object[]> results = reservationRepository.getOccupancyMetricsByLandlord(
+                landlordId,
+                startDateTime,
+                endDateTime
+        );
+
+        return results.stream()
+                .map(row -> {
+                    Long propertyId = ((Number) row[0]).longValue();
+                    String propertyTitle = (String) row[1];
+                    Integer totalReservations = ((Number) row[2]).intValue();
+                    BigDecimal totalRevenue = new BigDecimal(row[3].toString());
+                    Integer totalDaysOccupied = ((Number) row[4]).intValue();
+
+                    Double occupancyPercentage = totalDaysOccupied > 0
+                            ? (totalDaysOccupied * 100.0) / 30.0
+                            : 0.0;
+
+                    return OccupancyMetricsResponseDTO.builder()
+                            .propertyId(propertyId)
+                            .propertyTitle(propertyTitle)
+                            .totalReservations(totalReservations)
+                            .totalRevenue(totalRevenue)
+                            .occupancyPercentage(occupancyPercentage)
+                            .totalDaysOccupied(totalDaysOccupied)
+                            .build();
+                })
+                .toList();
     }
 
     @Override
@@ -47,8 +78,45 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public OccupancyMetricsResponseDTO getPropertyMetrics(Long propertyId, LocalDate startDate, LocalDate endDate) {
-        // TODO
-        return null;
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        List<Object[]> results = reservationRepository.getOccupancyMetricsByProperty(
+                propertyId,
+                startDateTime,
+                endDateTime
+        );
+
+        if (results.isEmpty()) {
+            return OccupancyMetricsResponseDTO.builder()
+                    .propertyId(propertyId)
+                    .propertyTitle("N/A")
+                    .totalReservations(0)
+                    .totalRevenue(BigDecimal.ZERO)
+                    .occupancyPercentage(0.0)
+                    .totalDaysOccupied(0)
+                    .build();
+        }
+
+        Object[] row = results.getFirst();
+        Long pId = ((Number) row[0]).longValue();
+        String pTitle = (String) row[1];
+        Integer totalRes = ((Number) row[2]).intValue();
+        BigDecimal revenue = new BigDecimal(row[3].toString());
+        int daysOccupied = ((Number) row[4]).intValue();
+
+        Double occupancyPercentage = daysOccupied > 0
+                ? (daysOccupied * 100.0) / 30.0
+                : 0.0;
+
+        return OccupancyMetricsResponseDTO.builder()
+                .propertyId(pId)
+                .propertyTitle(pTitle)
+                .totalReservations(totalRes)
+                .totalRevenue(revenue)
+                .occupancyPercentage(occupancyPercentage)
+                .totalDaysOccupied(daysOccupied)
+                .build();
     }
 
     private Double calculateResolutionRate(Object[] row) {
