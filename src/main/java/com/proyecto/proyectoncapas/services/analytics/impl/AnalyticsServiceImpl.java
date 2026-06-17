@@ -32,6 +32,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 endDateTime
         );
 
+        long rangeDays = Math.max(1, ChronoUnit.DAYS.between(startDate, endDate));
+
         return results.stream()
                 .map(row -> {
                     Long propertyId = ((Number) row[0]).longValue();
@@ -41,7 +43,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     Integer totalDaysOccupied = ((Number) row[4]).intValue();
 
                     Double occupancyPercentage = totalDaysOccupied > 0
-                            ? (totalDaysOccupied * 100.0) / 30.0
+                            ? (totalDaysOccupied * 100.0) / rangeDays
                             : 0.0;
 
                     return OccupancyMetricsResponseDTO.builder()
@@ -60,7 +62,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public List<MaintenanceMetricsResponseDTO> getMaintenanceMetrics(Long landlordId, LocalDate startDate, LocalDate endDate) {
         List<Object[]> results = ticketRepository.getMaintenanceMetricsByProperty(
                 startDate.atStartOfDay(),
-                endDate.atTime(23, 59, 59)
+                endDate.atTime(23, 59, 59),
+                landlordId
         );
 
         return results.stream()
@@ -105,8 +108,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         BigDecimal revenue = new BigDecimal(row[3].toString());
         int daysOccupied = ((Number) row[4]).intValue();
 
+        long rangeDays = Math.max(1, ChronoUnit.DAYS.between(startDate, endDate));
         Double occupancyPercentage = daysOccupied > 0
-                ? (daysOccupied * 100.0) / 30.0
+                ? (daysOccupied * 100.0) / rangeDays
                 : 0.0;
 
         return OccupancyMetricsResponseDTO.builder()

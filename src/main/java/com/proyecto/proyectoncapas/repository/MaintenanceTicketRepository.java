@@ -19,9 +19,8 @@ public interface MaintenanceTicketRepository extends JpaRepository<MaintenanceTi
     List<MaintenanceTicket> findByStatus(TicketStatus status);
     List<MaintenanceTicket> findByPropertyIdAndStatus(Long propertyId, TicketStatus status);
 
-    // Analytics query
     @Query(value = """
-        SELECT 
+        SELECT
             p.id as property_id,
             p.title as property_title,
             COUNT(*) as total_tickets,
@@ -31,10 +30,12 @@ public interface MaintenanceTicketRepository extends JpaRepository<MaintenanceTi
         FROM maintenance_tickets mt
         JOIN properties p ON mt.property_id = p.id
         WHERE mt.created_at BETWEEN :startDate AND :endDate
+          AND p.landlord_id = :landlordId
         GROUP BY p.id, p.title
         """, nativeQuery = true)
     List<Object[]> getMaintenanceMetricsByProperty(
             @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate
+            @Param("endDate") LocalDateTime endDate,
+            @Param("landlordId") Long landlordId
     );
 }

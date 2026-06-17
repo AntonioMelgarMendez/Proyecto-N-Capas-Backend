@@ -24,11 +24,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                 p.id as property_id,
                 p.title as property_title,
                 COUNT(r.id) as total_reservations,
-                COALESCE(SUM(p.daily_price * EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))), 0) as total_revenue,
+                COALESCE(SUM(p.price_per_night * EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))), 0) as total_revenue,
                 SUM(EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))) as total_days_occupied
             FROM reservations r
             JOIN properties p ON r.property_id = p.id
-            WHERE p.user_id = :landlordId
+            WHERE p.landlord_id = :landlordId
                 AND r.status IN ('CONFIRMED', 'COMPLETED', 'EXTENDED')
                 AND r.check_in_date >= :startDate
                 AND r.check_out_date <= :endDate
@@ -45,7 +45,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                 p.id as property_id,
                 p.title as property_title,
                 COUNT(r.id) as total_reservations,
-                COALESCE(SUM(p.daily_price * EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))), 0) as total_revenue,
+                COALESCE(SUM(p.price_per_night * EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))), 0) as total_revenue,
                 SUM(EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))) as total_days_occupied
             FROM reservations r
             JOIN properties p ON r.property_id = p.id
