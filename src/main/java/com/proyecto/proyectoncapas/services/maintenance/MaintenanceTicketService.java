@@ -2,7 +2,9 @@
 package com.proyecto.proyectoncapas.services.maintenance;
 
 import com.proyecto.proyectoncapas.dto.request.MaintenanceTicketRequestDTO;
+import com.proyecto.proyectoncapas.dto.request.TicketPhotoRequestDTO;
 import com.proyecto.proyectoncapas.dto.response.MaintenanceTicketResponseDTO;
+import com.proyecto.proyectoncapas.dto.response.TicketPhotoResponseDTO;
 import com.proyecto.proyectoncapas.utils.enums.TicketStatus;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,4 +18,5 @@ public interface MaintenanceTicketService {
     List<MaintenanceTicketResponseDTO> getTicketsByLandlord(Long landlordId);
     MaintenanceTicketResponseDTO updateTicketStatus(Long ticketId, TicketStatus status, Long landlordId);
     void deleteTicket(Long ticketId);
+    TicketPhotoResponseDTO uploadTicketPhoto(Long ticketId, TicketPhotoRequestDTO request);
 }
