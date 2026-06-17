@@ -97,12 +97,33 @@ public class GlobalExceptionHandler {
         return buildResponseEntity(HttpStatus.NOT_FOUND, "Reservation Not Found", ex.getMessage(), null);
     }
 
+    @ExceptionHandler(RoleNotFoundException.class)
+    public ResponseEntity<ApiError> handleRoleNotFound(RoleNotFoundException ex) {
+        return buildResponseEntity(HttpStatus.NOT_FOUND, "Role Not Found", ex.getMessage(), null);
+    }
+
     @ExceptionHandler(InvalidReservationException.class)
     public ResponseEntity<ApiError> handleInvalidReservation(InvalidReservationException ex) {
         return buildResponseEntity(HttpStatus.CONFLICT, "Reservation Logic Error", ex.getMessage(), null);
     }
 
+    // Credenciales incorrectas — 401
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex) {
+        return buildResponseEntity(HttpStatus.UNAUTHORIZED, "Invalid Credentials", ex.getMessage(), null);
+    }
 
+    // Principal nulo o tipo incorrecto — 500
+    @ExceptionHandler(InvalidPrincipalException.class)
+    public ResponseEntity<ApiError> handleInvalidPrincipal(InvalidPrincipalException ex) {
+        return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, "Authentication Error", ex.getMessage(), null);
+    }
+
+    // Usuario sin rol asignado — 403
+    @ExceptionHandler(MissingRoleException.class)
+    public ResponseEntity<ApiError> handleMissingRole(MissingRoleException ex) {
+        return buildResponseEntity(HttpStatus.FORBIDDEN, "Missing Role", ex.getMessage(), null);
+    }
 
     // Error mas rapido
     private ResponseEntity<ApiError> buildResponseEntity(HttpStatus status, String error, String message, Object details) {

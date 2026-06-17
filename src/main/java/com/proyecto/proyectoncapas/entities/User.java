@@ -46,6 +46,6 @@ public class User {
     // Many-to-one relation many "Users" and one "Roles"
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
-    private Roles role;
+    private Role role;
 
 }
