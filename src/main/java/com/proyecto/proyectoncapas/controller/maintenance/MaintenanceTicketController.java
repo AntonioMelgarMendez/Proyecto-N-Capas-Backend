@@ -1,10 +1,13 @@
 package com.proyecto.proyectoncapas.controller.maintenance;
 
 import com.proyecto.proyectoncapas.dto.request.MaintenanceTicketRequestDTO;
+import com.proyecto.proyectoncapas.dto.request.TicketPhotoRequestDTO;
 import com.proyecto.proyectoncapas.dto.response.GeneralResponse;
 import com.proyecto.proyectoncapas.dto.response.MaintenanceTicketResponseDTO;
+import com.proyecto.proyectoncapas.dto.response.TicketPhotoResponseDTO;
 import com.proyecto.proyectoncapas.services.maintenance.MaintenanceTicketService;
 import com.proyecto.proyectoncapas.utils.enums.TicketStatus;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -212,6 +215,34 @@ public class MaintenanceTicketController {
                 GeneralResponse.<String>builder()
                         .message("Ticket deleted successfully")
                         .data("Ticket ID: " + ticketId)
+                        .build());
+    }
+
+    @PostMapping(value = "/tickets/{ticketId}/photos", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload evidence photo to a ticket",
+            description = "Upload a photo of the damage or issue as evidence to an existing maintenance ticket")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Photo uploaded successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = GeneralResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid file or request"),
+            @ApiResponse(responseCode = "404", description = "Ticket not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<GeneralResponse<TicketPhotoResponseDTO>> uploadTicketPhoto(
+            @PathVariable
+            @Parameter(description = "Ticket ID", required = true)
+            Long ticketId,
+
+            @Valid @ModelAttribute
+            TicketPhotoRequestDTO request) {
+
+        TicketPhotoResponseDTO photo = maintenanceTicketService.uploadTicketPhoto(ticketId, request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(GeneralResponse.<TicketPhotoResponseDTO>builder()
+                        .message("Evidence photo uploaded successfully")
+                        .data(photo)
                         .build());
     }
 }
