@@ -22,11 +22,18 @@ public class Role {
     @Column(name = "role_id")
     private Integer roleId;
 
-    @Column(name = "role_name")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role_name", nullable = false, unique = true)
     private RolesName roleName;
 
+    @Column(name = "description")
     private String description;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

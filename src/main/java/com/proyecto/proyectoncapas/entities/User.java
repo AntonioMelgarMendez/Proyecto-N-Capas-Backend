@@ -19,6 +19,11 @@ public class User {
     @Column(name = "user_id")
     private Long id;
 
+    // Many-to-one relation many "Users" and one "Roles"
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
+
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
@@ -42,10 +47,5 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    // Many-to-one relation many "Users" and one "Roles"
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "role_id", nullable = false)
-    private Role role;
 
 }
