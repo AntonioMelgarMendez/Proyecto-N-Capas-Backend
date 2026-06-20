@@ -1,6 +1,7 @@
 package com.proyecto.proyectoncapas.controller.maintenance;
 
 import com.proyecto.proyectoncapas.dto.request.MaintenanceTicketRequestDTO;
+import com.proyecto.proyectoncapas.dto.request.MaintenanceTicketUpdateRequestDTO;
 import com.proyecto.proyectoncapas.dto.request.TicketPhotoRequestDTO;
 import com.proyecto.proyectoncapas.dto.response.GeneralResponse;
 import com.proyecto.proyectoncapas.dto.response.MaintenanceTicketResponseDTO;
@@ -19,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -33,7 +33,7 @@ public class MaintenanceTicketController {
 
     @PostMapping("/tickets")
     @Operation(summary = "Create a new maintenance ticket",
-            description = "Create a maintenance ticket with optional photo uploads for reporting damages or issues")
+            description = "Create a maintenance ticket. Upload photos separately via POST /tickets/{ticketId}/photos")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Maintenance ticket created successfully",
                     content = @Content(mediaType = "application/json",
@@ -47,15 +47,11 @@ public class MaintenanceTicketController {
             @Parameter(description = "Tenant ID", required = true)
             Long tenantId,
 
-            @RequestPart
+            @Valid @RequestBody
             @Parameter(description = "Maintenance ticket details", required = true)
-            MaintenanceTicketRequestDTO request,
+            MaintenanceTicketRequestDTO request) {
 
-            @RequestPart(required = false)
-            @Parameter(description = "Optional photos of the issue (multipart file upload)")
-            List<MultipartFile> photos) {
-
-        MaintenanceTicketResponseDTO ticket = maintenanceTicketService.createTicket(tenantId, request, photos);
+        MaintenanceTicketResponseDTO ticket = maintenanceTicketService.createTicket(tenantId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(GeneralResponse.<MaintenanceTicketResponseDTO>builder()
@@ -90,7 +86,7 @@ public class MaintenanceTicketController {
 
     @GetMapping("/tickets/tenant/{tenantId}")
     @Operation(summary = "Get all tickets reported by a tenant",
-            description = "Retrieve all maintenance tickets created by a specific tenant")
+            description = "Retrieve all maintenance tickets created by a specific tenant, optionally filtered by status")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Tickets retrieved successfully",
                     content = @Content(mediaType = "application/json",
@@ -101,9 +97,13 @@ public class MaintenanceTicketController {
     public ResponseEntity<GeneralResponse<List<MaintenanceTicketResponseDTO>>> getTicketsByTenant(
             @PathVariable
             @Parameter(description = "Tenant ID", required = true)
-            Long tenantId) {
+            Long tenantId,
 
-        List<MaintenanceTicketResponseDTO> tickets = maintenanceTicketService.getTicketsByTenant(tenantId);
+            @RequestParam(required = false)
+            @Parameter(description = "Filter by ticket status (OPEN, IN_PROGRESS, RESOLVED, CLOSED)")
+            TicketStatus status) {
+
+        List<MaintenanceTicketResponseDTO> tickets = maintenanceTicketService.getTicketsByTenant(tenantId, status);
 
         return ResponseEntity.ok(
                 GeneralResponse.<List<MaintenanceTicketResponseDTO>>builder()
@@ -114,7 +114,7 @@ public class MaintenanceTicketController {
 
     @GetMapping("/tickets/property/{propertyId}")
     @Operation(summary = "Get all tickets for a property",
-            description = "Retrieve all maintenance tickets related to a specific property")
+            description = "Retrieve all maintenance tickets related to a specific property, optionally filtered by status")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Tickets retrieved successfully",
                     content = @Content(mediaType = "application/json",
@@ -125,9 +125,13 @@ public class MaintenanceTicketController {
     public ResponseEntity<GeneralResponse<List<MaintenanceTicketResponseDTO>>> getTicketsByProperty(
             @PathVariable
             @Parameter(description = "Property ID", required = true)
-            Long propertyId) {
+            Long propertyId,
 
-        List<MaintenanceTicketResponseDTO> tickets = maintenanceTicketService.getTicketsByProperty(propertyId);
+            @RequestParam(required = false)
+            @Parameter(description = "Filter by ticket status (OPEN, IN_PROGRESS, RESOLVED, CLOSED)")
+            TicketStatus status) {
+
+        List<MaintenanceTicketResponseDTO> tickets = maintenanceTicketService.getTicketsByProperty(propertyId, status);
 
         return ResponseEntity.ok(
                 GeneralResponse.<List<MaintenanceTicketResponseDTO>>builder()
@@ -138,7 +142,7 @@ public class MaintenanceTicketController {
 
     @GetMapping("/tickets/landlord/{landlordId}")
     @Operation(summary = "Get all tickets for a landlord's properties",
-            description = "Retrieve all maintenance tickets for a specific landlord")
+            description = "Retrieve all maintenance tickets for a specific landlord, optionally filtered by status")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Tickets retrieved successfully",
                     content = @Content(mediaType = "application/json",
@@ -149,14 +153,46 @@ public class MaintenanceTicketController {
     public ResponseEntity<GeneralResponse<List<MaintenanceTicketResponseDTO>>> getTicketsByLandlord(
             @PathVariable
             @Parameter(description = "Landlord ID", required = true)
-            Long landlordId) {
+            Long landlordId,
 
-        List<MaintenanceTicketResponseDTO> tickets = maintenanceTicketService.getTicketsByLandlord(landlordId);
+            @RequestParam(required = false)
+            @Parameter(description = "Filter by ticket status (OPEN, IN_PROGRESS, RESOLVED, CLOSED)")
+            TicketStatus status) {
+
+        List<MaintenanceTicketResponseDTO> tickets = maintenanceTicketService.getTicketsByLandlord(landlordId, status);
 
         return ResponseEntity.ok(
                 GeneralResponse.<List<MaintenanceTicketResponseDTO>>builder()
                         .message("Landlord tickets retrieved successfully")
                         .data(tickets)
+                        .build());
+    }
+
+    @PutMapping("/tickets/{ticketId}")
+    @Operation(summary = "Update ticket details",
+            description = "Update the title, description, or priority of a maintenance ticket - Tenant only")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ticket updated successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = GeneralResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Ticket not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<GeneralResponse<MaintenanceTicketResponseDTO>> updateTicket(
+            @PathVariable
+            @Parameter(description = "Ticket ID", required = true)
+            Long ticketId,
+
+            @RequestBody
+            @Parameter(description = "Fields to update (title, description, priority — all optional)", required = true)
+            MaintenanceTicketUpdateRequestDTO request) {
+
+        MaintenanceTicketResponseDTO ticket = maintenanceTicketService.updateTicket(ticketId, request);
+
+        return ResponseEntity.ok(
+                GeneralResponse.<MaintenanceTicketResponseDTO>builder()
+                        .message("Ticket updated successfully")
+                        .data(ticket)
                         .build());
     }
 

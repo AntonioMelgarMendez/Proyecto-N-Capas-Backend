@@ -16,5 +16,6 @@ public class MaintenanceMetricsResponseDTO {
     private Long openTickets;
     private Long inProgressTickets;
     private Long resolvedTickets;
+    private Long closedTickets;
     private Double resolutionRate;
 }

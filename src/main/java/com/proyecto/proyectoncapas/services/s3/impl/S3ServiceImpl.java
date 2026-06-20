@@ -36,10 +36,10 @@ public class S3ServiceImpl implements S3Service {
     private String endpointOverride;
 
     @Override
-    public String uploadFile(MultipartFile file, Long propertyId) {
+    public String uploadFile(MultipartFile file, String pathPrefix) {
         validateFile(file);
 
-        String key = "properties/" + propertyId + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
+        String key = pathPrefix + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
 
         try {
             PutObjectRequest request = PutObjectRequest.builder()

@@ -1,7 +1,7 @@
-// MaintenanceTicketServiceImpl.java
 package com.proyecto.proyectoncapas.services.maintenance.impl;
 
 import com.proyecto.proyectoncapas.dto.request.MaintenanceTicketRequestDTO;
+import com.proyecto.proyectoncapas.dto.request.MaintenanceTicketUpdateRequestDTO;
 import com.proyecto.proyectoncapas.dto.request.TicketPhotoRequestDTO;
 import com.proyecto.proyectoncapas.dto.response.MaintenanceTicketResponseDTO;
 import com.proyecto.proyectoncapas.dto.response.TicketPhotoResponseDTO;
@@ -20,7 +20,7 @@ import com.proyecto.proyectoncapas.utils.enums.TicketStatus;
 import com.proyecto.proyectoncapas.utils.mappers.MaintenanceTicketMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,7 +37,8 @@ public class MaintenanceTicketServiceImpl implements MaintenanceTicketService {
     private final S3Service s3Service;
 
     @Override
-    public MaintenanceTicketResponseDTO createTicket(Long tenantId, MaintenanceTicketRequestDTO request, List<MultipartFile> photos) {
+    @Transactional
+    public MaintenanceTicketResponseDTO createTicket(Long tenantId, MaintenanceTicketRequestDTO request) {
         User tenant = userRepository.findById(tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
 
@@ -54,21 +55,7 @@ public class MaintenanceTicketServiceImpl implements MaintenanceTicketService {
                 .status(TicketStatus.OPEN)
                 .build();
 
-        MaintenanceTicket savedTicket = ticketRepository.save(ticket);
-
-        if (photos != null && !photos.isEmpty()) {
-            for (MultipartFile photo : photos) {
-                String s3Key = s3Service.uploadFile(photo, Long.valueOf("maintenance-tickets/" + savedTicket.getId()));
-                TicketPhoto ticketPhoto = TicketPhoto.builder()
-                        .ticket(savedTicket)
-                        .photoUrl(s3Service.getFileUrl(s3Key))
-                        .s3Key(s3Key)
-                        .build();
-                photoRepository.save(ticketPhoto);
-            }
-        }
-
-        return MaintenanceTicketMapper.toDTO(savedTicket);
+        return MaintenanceTicketMapper.toDTO(ticketRepository.save(ticket));
     }
 
     @Override
@@ -79,30 +66,56 @@ public class MaintenanceTicketServiceImpl implements MaintenanceTicketService {
     }
 
     @Override
-    public List<MaintenanceTicketResponseDTO> getTicketsByTenant(Long tenantId) {
-        return ticketRepository.findByTenantId(tenantId)
-                .stream()
+    public List<MaintenanceTicketResponseDTO> getTicketsByTenant(Long tenantId, TicketStatus status) {
+        List<MaintenanceTicket> tickets = (status != null)
+                ? ticketRepository.findByTenantIdAndStatus(tenantId, status)
+                : ticketRepository.findByTenantId(tenantId);
+        return tickets.stream()
                 .map(MaintenanceTicketMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<MaintenanceTicketResponseDTO> getTicketsByProperty(Long propertyId) {
-        return ticketRepository.findByPropertyId(propertyId)
-                .stream()
+    public List<MaintenanceTicketResponseDTO> getTicketsByProperty(Long propertyId, TicketStatus status) {
+        List<MaintenanceTicket> tickets = (status != null)
+                ? ticketRepository.findByPropertyIdAndStatus(propertyId, status)
+                : ticketRepository.findByPropertyId(propertyId);
+        return tickets.stream()
                 .map(MaintenanceTicketMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<MaintenanceTicketResponseDTO> getTicketsByLandlord(Long landlordId) {
-        return ticketRepository.findByLandlordId(landlordId)
-                .stream()
+    public List<MaintenanceTicketResponseDTO> getTicketsByLandlord(Long landlordId, TicketStatus status) {
+        List<MaintenanceTicket> tickets = (status != null)
+                ? ticketRepository.findByLandlordIdAndStatus(landlordId, status)
+                : ticketRepository.findByLandlordId(landlordId);
+        return tickets.stream()
                 .map(MaintenanceTicketMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
+    public MaintenanceTicketResponseDTO updateTicket(Long ticketId, MaintenanceTicketUpdateRequestDTO request) {
+        MaintenanceTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
+
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
+            ticket.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            ticket.setDescription(request.getDescription());
+        }
+        if (request.getPriority() != null) {
+            ticket.setPriority(request.getPriority());
+        }
+
+        return MaintenanceTicketMapper.toDTO(ticketRepository.save(ticket));
+    }
+
+    @Override
+    @Transactional
     public MaintenanceTicketResponseDTO updateTicketStatus(Long ticketId, TicketStatus status, Long landlordId) {
         MaintenanceTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
@@ -116,11 +129,11 @@ public class MaintenanceTicketServiceImpl implements MaintenanceTicketService {
             ticket.setResolvedAt(LocalDateTime.now());
         }
 
-        MaintenanceTicket updated = ticketRepository.save(ticket);
-        return MaintenanceTicketMapper.toDTO(updated);
+        return MaintenanceTicketMapper.toDTO(ticketRepository.save(ticket));
     }
 
     @Override
+    @Transactional
     public void deleteTicket(Long ticketId) {
         MaintenanceTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
@@ -131,11 +144,12 @@ public class MaintenanceTicketServiceImpl implements MaintenanceTicketService {
     }
 
     @Override
+    @Transactional
     public TicketPhotoResponseDTO uploadTicketPhoto(Long ticketId, TicketPhotoRequestDTO request) {
         MaintenanceTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with ID: " + ticketId));
 
-        String s3Key = s3Service.uploadFile(request.getPhoto(), Long.valueOf("maintenance-tickets/" + ticketId));
+        String s3Key = s3Service.uploadFile(request.getPhoto(), "maintenance-tickets/" + ticketId);
         TicketPhoto ticketPhoto = TicketPhoto.builder()
                 .ticket(ticket)
                 .photoUrl(s3Service.getFileUrl(s3Key))

@@ -74,6 +74,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         .openTickets(((Number) row[3]).longValue())
                         .inProgressTickets(((Number) row[4]).longValue())
                         .resolvedTickets(((Number) row[5]).longValue())
+                        .closedTickets(((Number) row[6]).longValue())
                         .resolutionRate(calculateResolutionRate(row))
                         .build())
                 .toList();

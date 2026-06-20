@@ -20,12 +20,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     // Occupancy Metrics Queries
     @Query(value = """
-            SELECT 
+            SELECT
                 p.id as property_id,
                 p.title as property_title,
                 COUNT(r.id) as total_reservations,
-                COALESCE(SUM(p.price_per_night * EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))), 0) as total_revenue,
-                SUM(EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))) as total_days_occupied
+                COALESCE(SUM(p.price_per_night * (r.check_out_date - r.check_in_date)), 0) as total_revenue,
+                COALESCE(SUM(r.check_out_date - r.check_in_date), 0) as total_days_occupied
             FROM reservations r
             JOIN properties p ON r.property_id = p.id
             WHERE p.landlord_id = :landlordId
@@ -41,12 +41,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     @Query(value = """
-            SELECT 
+            SELECT
                 p.id as property_id,
                 p.title as property_title,
                 COUNT(r.id) as total_reservations,
-                COALESCE(SUM(p.price_per_night * EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))), 0) as total_revenue,
-                SUM(EXTRACT(DAY FROM (r.check_out_date - r.check_in_date))) as total_days_occupied
+                COALESCE(SUM(p.price_per_night * (r.check_out_date - r.check_in_date)), 0) as total_revenue,
+                COALESCE(SUM(r.check_out_date - r.check_in_date), 0) as total_days_occupied
             FROM reservations r
             JOIN properties p ON r.property_id = p.id
             WHERE p.id = :propertyId
