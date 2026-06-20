@@ -1,6 +1,6 @@
 package com.proyecto.proyectoncapas.utils.security;
 
-import com.proyecto.proyectoncapas.services.authentication.UserDetailsService;
+import com.proyecto.proyectoncapas.services.authentication.impl.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,7 +21,7 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtil;
-    private final UserDetailsService userDetailsService;
+    private final UserDetailsServiceImpl userDetailsService;
 
     private static final String AUTH_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -34,7 +34,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         final String authHeader = request.getHeader(AUTH_HEADER);
-        if (authHeader == null && !authHeader.startsWith(BEARER_PREFIX)) {
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             filterChain.doFilter(request, response);
             return;
         }

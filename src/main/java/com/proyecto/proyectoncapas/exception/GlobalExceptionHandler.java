@@ -4,6 +4,7 @@ import com.stripe.exception.SignatureVerificationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -107,6 +108,23 @@ public class GlobalExceptionHandler {
         return buildResponseEntity(HttpStatus.CONFLICT, "Reservation Logic Error", ex.getMessage(), null);
     }
 
+    // Llave temporal inválida (expirada, revocada, usada) - 410
+    @ExceptionHandler(InvalidTemporalKeyException.class)
+    public ResponseEntity<ApiError> handleInvalidTemporalKey(InvalidTemporalKeyException ex) {
+        return buildResponseEntity(HttpStatus.GONE, "Invalid Temporal Key", ex.getMessage(), null);
+    }
+
+    // Contrato no elegible para generar llave (no firmado, fuera de fecha) - 409
+    @ExceptionHandler(ContractNotEligibleException.class)
+    public ResponseEntity<ApiError> handleContractNotEligible(ContractNotEligibleException ex) {
+        return buildResponseEntity(HttpStatus.CONFLICT, "Contract Not Eligible", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
+        return buildResponseEntity(HttpStatus.CONFLICT, "Email Already Exists", ex.getMessage(), null);
+    }
+
     // Credenciales incorrectas — 401
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex) {
@@ -123,6 +141,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingRoleException.class)
     public ResponseEntity<ApiError> handleMissingRole(MissingRoleException ex) {
         return buildResponseEntity(HttpStatus.FORBIDDEN, "Missing Role", ex.getMessage(), null);
+    }
+
+    // Request Method HTTP incorrecto — 405
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex) {
+        return buildResponseEntity(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "Method Not Allowed",
+                "Use " + ex.getSupportedHttpMethods() + " for this endpoint",
+                null
+        );
     }
 
     // Error mas rapido

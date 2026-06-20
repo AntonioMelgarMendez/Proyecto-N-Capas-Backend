@@ -18,5 +18,6 @@ public class RegisterRequestDTO {
     @NotNull(message = "Password is required")
     private String password;
     private String phone;
+    private String roleName;
     private Integer roleID;
 }
