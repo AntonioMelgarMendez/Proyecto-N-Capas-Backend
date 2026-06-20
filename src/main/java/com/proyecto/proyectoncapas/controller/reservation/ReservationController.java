@@ -5,6 +5,10 @@ import com.proyecto.proyectoncapas.dto.response.*;
 import com.proyecto.proyectoncapas.exception.InvalidPaymentStateException;
 import com.proyecto.proyectoncapas.services.reservation.AvailabilityService;
 import com.proyecto.proyectoncapas.services.reservation.ReservationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -17,12 +21,17 @@ import java.util.List;
 @RestController
 @RequestMapping("api/reservations")
 @AllArgsConstructor
+@Tag(name = "Reservations", description = "Full booking lifecycle — availability calendar, pricing quotes, extensions, and cancellations")
 public class ReservationController {
 
     private final AvailabilityService availabilityService;
     private final ReservationService bookingService;
 
     @GetMapping("/{id}/calendar")
+    @Operation(summary = "Get availability calendar", description = "Returns all occupied dates for a property within a date range")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Occupied dates returned")
+    })
     public ResponseEntity<GeneralResponse<List<LocalDate>>> getPropertyCalendar(
             @PathVariable Long id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
@@ -38,6 +47,11 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/book")
+    @Operation(summary = "Create booking", description = "Book a property for specific dates. Reservation is created in PENDING_PAYMENT status — payment must be initiated next.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Booking created"),
+            @ApiResponse(responseCode = "409", description = "Dates unavailable or invalid")
+    })
     public ResponseEntity<GeneralResponse<ReservationResponseDTO>> bookProperty(
             @PathVariable Long id,
             @Valid @RequestBody ReservationRequestDTO reservationRequestDTO) {
@@ -53,6 +67,11 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/quote")
+    @Operation(summary = "Get price quote", description = "Calculate the total price for a reservation including applicable rules (cleaning fee, discounts, etc.) without creating a booking")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Quote calculated"),
+            @ApiResponse(responseCode = "404", description = "Property not found")
+    })
     public ResponseEntity<GeneralResponse<ReservationQuoteResponseDTO>> quoteReservation(
             @PathVariable Long id,
             @Valid @RequestBody ReservationRequestDTO reservationRequestDTO) {
@@ -68,6 +87,11 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/extend/quote")
+    @Operation(summary = "Quote stay extension", description = "Get the cost breakdown for extending a reservation by N extra days")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Extension quote returned"),
+            @ApiResponse(responseCode = "409", description = "Reservation is not in an extendable status")
+    })
     public ResponseEntity<GeneralResponse<ExtensionQuoteResponseDTO>> quoteExtension(
             @PathVariable Long id,
             @RequestParam int extraDays) {
@@ -83,6 +107,11 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/extend/request")
+    @Operation(summary = "Request stay extension", description = "Submit an extension request to the landlord. Landlord must approve before payment can be made.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Extension request submitted"),
+            @ApiResponse(responseCode = "409", description = "Active extension request already exists")
+    })
     public ResponseEntity<GeneralResponse<ExtensionRequestResponseDTO>> requestExtension(
             @PathVariable Long id,
             @RequestParam int extraDays) {
@@ -98,6 +127,12 @@ public class ReservationController {
     }
 
     @PostMapping("/extend/{requestId}/approve")
+    @Operation(summary = "Approve extension request", description = "Landlord approves a tenant's extension request. Tenant can then pay via /api/payments/checkout/extension/{requestId}")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Extension approved"),
+            @ApiResponse(responseCode = "403", description = "Only the property landlord can approve"),
+            @ApiResponse(responseCode = "409", description = "Request is not pending")
+    })
     public ResponseEntity<GeneralResponse<ExtensionRequestResponseDTO>> approveExtension(
             @PathVariable Long requestId,
             @RequestParam Long landlordId) {
@@ -113,6 +148,11 @@ public class ReservationController {
     }
 
     @PostMapping("/extend/{requestId}/reject")
+    @Operation(summary = "Reject extension request", description = "Landlord rejects a tenant's extension request")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Extension rejected"),
+            @ApiResponse(responseCode = "409", description = "Request is not pending")
+    })
     public ResponseEntity<GeneralResponse<ExtensionRequestResponseDTO>> rejectExtension(
             @PathVariable Long requestId,
             @RequestParam Long landlordId) {
@@ -128,6 +168,10 @@ public class ReservationController {
     }
 
     @GetMapping("/extend/landlord/{landlordId}")
+    @Operation(summary = "Get landlord extension requests", description = "Retrieve all extension requests for a landlord's properties, optionally filtered by status")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Extension requests returned")
+    })
     public ResponseEntity<GeneralResponse<List<ExtensionRequestLandlordResponseDTO>>> getLandlordExtensionRequests(
             @PathVariable Long landlordId,
             @RequestParam(required = false) String status) {
@@ -143,6 +187,10 @@ public class ReservationController {
     }
 
     @GetMapping("/{reservationId}/extend/requests")
+    @Operation(summary = "Get extension requests by reservation", description = "Retrieve all extension requests for a specific reservation")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Extension requests returned")
+    })
     public ResponseEntity<GeneralResponse<List<ExtensionRequestResponseDTO>>> getExtensionRequestsByReservation(
             @PathVariable Long reservationId) {
 
@@ -157,6 +205,10 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/extend/pay")
+    @Operation(summary = "Pay extension (disabled)", description = "Direct extension payment is disabled. Use POST /api/payments/checkout/extension/{extensionRequestId} after landlord approval.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "409", description = "Direct extension payment is disabled")
+    })
     public ResponseEntity<GeneralResponse<String>> payExtension(
             @PathVariable Long id,
             @RequestParam int extraDays) {
@@ -167,6 +219,11 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/cancel/quote")
+    @Operation(summary = "Quote cancellation", description = "Calculate the penalty fee and refund amount before confirming a cancellation")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cancellation quote returned"),
+            @ApiResponse(responseCode = "404", description = "Reservation not found")
+    })
     public ResponseEntity<GeneralResponse<CancellationQuoteResponseDTO>> quoteCancellation(@PathVariable Long id) {
 
         CancellationQuoteResponseDTO data = bookingService.quoteCancellation(id);
@@ -180,6 +237,11 @@ public class ReservationController {
     }
 
     @PostMapping("/{id}/cancel/confirm")
+    @Operation(summary = "Confirm cancellation", description = "Cancel a confirmed reservation, apply the cancellation penalty, and process a partial refund if applicable")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Reservation cancelled"),
+            @ApiResponse(responseCode = "409", description = "Reservation cannot be cancelled in its current status")
+    })
     public ResponseEntity<GeneralResponse<CancellationResponseDTO>> confirmCancellation(@PathVariable Long id) {
 
         CancellationResponseDTO data = bookingService.confirmCancellation(id);
@@ -193,6 +255,10 @@ public class ReservationController {
     }
 
     @GetMapping("/tenant/{tenantId}")
+    @Operation(summary = "Get tenant reservations", description = "Retrieve all reservations for a tenant with contract status and entry PIN")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Reservations returned")
+    })
     public ResponseEntity<GeneralResponse<List<TenantReservationResponseDTO>>> getTenantReservations(@PathVariable Long tenantId) {
         List<TenantReservationResponseDTO> list = bookingService.getTenantReservations(tenantId);
         return ResponseEntity.ok(
