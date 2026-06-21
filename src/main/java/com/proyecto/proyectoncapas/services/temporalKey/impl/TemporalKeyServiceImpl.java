@@ -25,6 +25,7 @@ public class TemporalKeyServiceImpl implements TemporalKeyService {
     private final ContractRepository contractRepository;
     private final ReservationRepository reservationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -62,7 +63,6 @@ public class TemporalKeyServiceImpl implements TemporalKeyService {
         int pin = 100000 + RANDOM.nextInt(900000);
         return String.valueOf(pin);
     }
-
 
 
 }
