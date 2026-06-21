@@ -404,8 +404,8 @@ public class ReservationServiceImpl implements ReservationService {
                 .map(r -> {
                     String contractStatus = contractRepository.findByReservationId(r.getId())
                             .map(Contract::getStatus)
-                            .map(status -> "SIGNED".equalsIgnoreCase(status) ? "Firmado" : "Pendiente")
-                            .orElse("Pendiente");
+                            .map(this::mapContractStatusLabel)
+                            .orElse("Pendiente de firma");
 
                     String coverPhoto = null;
                     if (r.getProperty().getPhotos() != null && !r.getProperty().getPhotos().isEmpty()) {
@@ -508,6 +508,16 @@ public class ReservationServiceImpl implements ReservationService {
                 surchargeAmount,
                 extensionSubtotal
         );
+    }
+
+    private String mapContractStatusLabel(String status) {
+        if ("SIGNED".equalsIgnoreCase(status)) {
+            return "Firmado";
+        }
+        if ("PENDING_SIGNATURE".equalsIgnoreCase(status)) {
+            return "Firmado por ti";
+        }
+        return "Pendiente de firma";
     }
 
     private void validateExtensionEligible(Reservation reservation) {
