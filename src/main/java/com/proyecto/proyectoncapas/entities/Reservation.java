@@ -60,6 +60,10 @@ public class Reservation {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // Llaves temporales al hacer reserva
+    @Column(name = "pin_hash")
+    private String pinHash;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
