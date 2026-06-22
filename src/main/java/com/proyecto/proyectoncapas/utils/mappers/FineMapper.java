@@ -6,7 +6,7 @@ import com.proyecto.proyectoncapas.entities.Fine;
 
 public class FineMapper {
 
-    public FineResponseDTO toResponseDTO(Fine fine) {
+    public static FineResponseDTO toResponseDTO(Fine fine) {
         if (fine == null) return null;
 
         return FineResponseDTO.builder()
