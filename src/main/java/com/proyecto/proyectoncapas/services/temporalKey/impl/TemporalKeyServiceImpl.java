@@ -8,8 +8,6 @@ import com.proyecto.proyectoncapas.exception.ContractNotEligibleException;
 import com.proyecto.proyectoncapas.exception.ResourceNotFoundException;
 import com.proyecto.proyectoncapas.repository.ContractRepository;
 import com.proyecto.proyectoncapas.repository.ReservationRepository;
-import com.proyecto.proyectoncapas.repository.ContractRepository;
-import com.proyecto.proyectoncapas.services.email.EmailService;
 import com.proyecto.proyectoncapas.services.temporalKey.TemporalKeyService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +23,6 @@ public class TemporalKeyServiceImpl implements TemporalKeyService {
     private final ContractRepository contractRepository;
     private final ReservationRepository reservationRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -63,6 +60,5 @@ public class TemporalKeyServiceImpl implements TemporalKeyService {
         int pin = 100000 + RANDOM.nextInt(900000);
         return String.valueOf(pin);
     }
-
 
 }
