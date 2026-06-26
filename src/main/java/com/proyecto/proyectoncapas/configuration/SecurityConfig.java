@@ -2,6 +2,7 @@ package com.proyecto.proyectoncapas.configuration;
 
 import com.proyecto.proyectoncapas.services.authentication.impl.UserDetailsServiceImpl;
 import com.proyecto.proyectoncapas.utils.security.JwtAuthFilter;
+import com.proyecto.proyectoncapas.utils.security.JwtAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +32,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -48,6 +50,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/properties/**").permitAll()
                         .requestMatchers("/api/reviews/**").permitAll()
                         .anyRequest().authenticated()
+                ).exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 ).addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

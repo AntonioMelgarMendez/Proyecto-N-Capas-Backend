@@ -3,6 +3,7 @@ package com.proyecto.proyectoncapas.exception;
 import com.stripe.exception.SignatureVerificationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -123,6 +124,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
         return buildResponseEntity(HttpStatus.CONFLICT, "Email Already Exists", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiError> handleAuthorizationDenied(
+            AuthorizationDeniedException ex) {
+
+        return buildResponseEntity(HttpStatus.FORBIDDEN, "Access Denied", "You don't have the required authority to access this resource", null
+        );
     }
 
     // Credenciales incorrectas — 401
