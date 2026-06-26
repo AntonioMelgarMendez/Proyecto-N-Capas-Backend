@@ -16,6 +16,7 @@ public class UserMapper {
                 .email(user.getEmail())
                 .phoneNumber(user.getPhone())
                 .active(user.getIsActive())
+                .verified(user.getIsVerified())
                 .roleName(user.getRole().getRoleName().name())
                 .createdAt(user.getCreatedAt())
                 .build();
@@ -28,6 +29,7 @@ public class UserMapper {
                 .passwordHash(passwordEncoder.encode(registerRequestDTO.getPassword()))
                 .phone(registerRequestDTO.getPhone())
                 .isActive(true)
+                .legacyRole(role.getRoleName().name())
                 .role(role)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())

@@ -21,8 +21,11 @@ public class User {
 
     // Many-to-one relation many "Users" and one "Roles"
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "role_id", nullable = false)
+    @JoinColumn(name = "role_id", referencedColumnName = "id", nullable = false)
     private Role role;
+
+    @Column(name = "role", nullable = false)
+    private String legacyRole;
 
     @Column(name = "full_name", nullable = false)
     private String fullName;
@@ -51,6 +54,19 @@ public class User {
     @PrePersist
     private void onCreate() {
         this.createdAt = LocalDateTime.now();
+        syncLegacyRole();
+    }
+
+    @PreUpdate
+    private void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+        syncLegacyRole();
+    }
+
+    private void syncLegacyRole() {
+        if (this.role != null && this.role.getRoleName() != null) {
+            this.legacyRole = this.role.getRoleName().name();
+        }
     }
 
 }

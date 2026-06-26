@@ -10,8 +10,7 @@ import java.util.List;
 public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     List<Property> findByLandlord_Id(Long landlordId);
-
     List<Property> findByIsAvailableTrue();
-
     List<Property> findByCityIgnoreCase(String city);
+    long countByIsAvailableTrue();
 }

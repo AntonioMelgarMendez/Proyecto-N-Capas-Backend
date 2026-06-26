@@ -268,4 +268,19 @@ public class ReservationController {
                         .build()
         );
     }
+
+    @GetMapping("/landlord/{landlordId}/tenants")
+    @Operation(summary = "Get landlord tenants", description = "Distinct tenants with reservations on the landlord's properties")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tenants returned")
+    })
+    public ResponseEntity<GeneralResponse<List<UserResponseDTO>>> getLandlordTenants(@PathVariable Long landlordId) {
+        List<UserResponseDTO> tenants = bookingService.getLandlordTenants(landlordId);
+        return ResponseEntity.ok(
+                GeneralResponse.<List<UserResponseDTO>>builder()
+                        .message("Tenants retrieved successfully")
+                        .data(tenants)
+                        .build()
+        );
+    }
 }

@@ -17,6 +17,14 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     boolean existsByProperty_Id(Long propertyId);
     List<Reservation> findByTenant_IdOrderByCheckInDateDesc(Long tenantId);
+
+    @Query("""
+            SELECT DISTINCT r.tenant FROM Reservation r
+            WHERE r.property.landlord.id = :landlordId
+              AND r.tenant IS NOT NULL
+            ORDER BY r.tenant.fullName
+            """)
+    List<com.proyecto.proyectoncapas.entities.User> findDistinctTenantsByLandlordId(@Param("landlordId") Long landlordId);
     List<Reservation> findByTenantIdAndStatus(Long tenantId, ReservationStatus status);
     List<Reservation> findByStatusAndCreatedAtBefore(ReservationStatus status, LocalDateTime createdAt);
 

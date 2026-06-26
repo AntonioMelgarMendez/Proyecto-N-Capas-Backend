@@ -15,6 +15,7 @@ import com.proyecto.proyectoncapas.utils.enums.ExtensionRequestStatus;
 import com.proyecto.proyectoncapas.utils.enums.ReservationStatus;
 import com.proyecto.proyectoncapas.utils.enums.RuleType;
 import com.proyecto.proyectoncapas.utils.mappers.ReservationMapper;
+import com.proyecto.proyectoncapas.utils.mappers.UserMapper;
 import jakarta.transaction.Transactional;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -455,6 +456,13 @@ public class ReservationServiceImpl implements ReservationService {
 
         return extensionRequestRepository.findByLandlordIdAndOptionalStatus(landlordId, statusFilter).stream()
                 .map(this::toLandlordExtensionRequestDTO)
+                .toList();
+    }
+
+    @Override
+    public List<UserResponseDTO> getLandlordTenants(Long landlordId) {
+        return reservationRepository.findDistinctTenantsByLandlordId(landlordId).stream()
+                .map(UserMapper::userResponseDTO)
                 .toList();
     }
 
