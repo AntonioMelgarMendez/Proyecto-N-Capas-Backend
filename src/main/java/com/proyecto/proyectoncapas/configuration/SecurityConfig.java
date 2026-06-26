@@ -49,6 +49,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/reservations/**").permitAll()
                         .requestMatchers("/api/properties/**").permitAll()
                         .requestMatchers("/api/reviews/**").permitAll()
+                        .requestMatchers("/api/analytics/**").permitAll()
+                        .requestMatchers("/api/maintenance/**").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 ).exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
