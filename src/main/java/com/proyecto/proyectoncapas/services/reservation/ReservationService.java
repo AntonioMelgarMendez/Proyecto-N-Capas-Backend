@@ -22,4 +22,5 @@ public interface ReservationService {
     List<TenantReservationResponseDTO> getTenantReservations(Long tenantId);
     List<ExtensionRequestResponseDTO> getExtensionRequestsByReservation(Long reservationId);
     List<ExtensionRequestLandlordResponseDTO> getLandlordExtensionRequests(Long landlordId, String status);
+    List<UserResponseDTO> getLandlordTenants(Long landlordId);
 }

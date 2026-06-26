@@ -53,6 +53,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/payments/**").permitAll()
                         .requestMatchers("/api/webhooks/**").permitAll()
 
+                        // Administración — solo ADMIN
+                        .requestMatchers("/api/admin/**").hasAuthority(ADMIN)
+
                         // Propiedades
                         // Solicitar catalogo de propiedades, ver/buscar seria publico
                         .requestMatchers(HttpMethod.GET, "/api/properties/**").permitAll()
@@ -63,10 +66,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/properties/**").hasAnyAuthority(ADMIN, ARRENDADOR)
 
                         // Reservas
-                        // El inquilino crea las reservas
-                        .requestMatchers(HttpMethod.POST, "/api/reservations").hasAuthority(INQUILINO)
+                        // Cotización pública — permite ver precios sin estar autenticado
+                        .requestMatchers(HttpMethod.POST, "/api/reservations/*/quote").permitAll()
+                        // Operaciones de inquilino
+                        .requestMatchers(HttpMethod.POST, "/api/reservations/*/book").hasAuthority(INQUILINO)
                         .requestMatchers(HttpMethod.POST, "/api/reservations/*/extend/**").hasAuthority(INQUILINO)
                         .requestMatchers(HttpMethod.POST, "/api/reservations/*/cancel/**").hasAuthority(INQUILINO)
+                        // Operaciones de arrendador/admin
                         .requestMatchers(HttpMethod.PUT, "/api/reservations/**").hasAnyAuthority(ARRENDADOR, ADMIN)
                         .requestMatchers(HttpMethod.PATCH, "/api/reservations/**").hasAnyAuthority(ARRENDADOR, ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/reservations/**").authenticated()
@@ -74,7 +80,10 @@ public class SecurityConfig {
                         // Contratos
                         .requestMatchers("/api/contracts/**").authenticated()
 
-                        // Mantenimiento
+                        // Mantenimiento preventivo
+                        .requestMatchers("/api/preventive-tasks/**").hasAnyAuthority(ADMIN, ARRENDADOR)
+
+                        // Mantenimiento reactivo (tickets)
                         .requestMatchers(HttpMethod.POST, "/api/maintenance/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/contracts/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/contracts/**").hasAnyAuthority(ADMIN, ARRENDADOR)
@@ -85,8 +94,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/reviews/**").authenticated()
 
                         // Verificacion de identidad
+                        // INQUILINO puede subir y consultar su propio documento
                         .requestMatchers(HttpMethod.POST,"/api/identity/**").authenticated()
-                        .requestMatchers(HttpMethod.GET,"/api/identity/**").hasAnyAuthority(ADMIN, ARRENDADOR)
+                        .requestMatchers(HttpMethod.GET,"/api/identity/**").hasAnyAuthority(ADMIN, ARRENDADOR, INQUILINO)
                         .requestMatchers(HttpMethod.PUT,"/api/identity/**").hasAnyAuthority(ADMIN, ARRENDADOR)
                         .requestMatchers(HttpMethod.PATCH,"/api/identity/**").hasAnyAuthority(ADMIN, ARRENDADOR)
 
@@ -111,7 +121,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174", "http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 

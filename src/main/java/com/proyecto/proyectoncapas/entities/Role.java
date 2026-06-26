@@ -19,8 +19,11 @@ public class Role {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "role_id")
-    private Integer roleId;
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "name", nullable = false)
+    private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role_name", nullable = false, unique = true)
@@ -35,5 +38,8 @@ public class Role {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (this.name == null && this.roleName != null) {
+            this.name = this.roleName.name();
+        }
     }
 }
