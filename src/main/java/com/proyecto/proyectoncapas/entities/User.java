@@ -2,7 +2,9 @@ package com.proyecto.proyectoncapas.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
+
 
 @Data
 @Builder
@@ -14,7 +16,16 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private Long id;
+
+    // Many-to-one relation many "Users" and one "Roles"
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
+
+    @Column(name = "full_name", nullable = false)
+    private String fullName;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -22,13 +33,11 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Column(name = "full_name", nullable = false)
-    private String fullName;
-
+    @Column(name = "phone_number")
     private String phone;
 
-    @Column(nullable = false)
-    private String role; // "ADMIN", "LANDLORD", "TENANT"
+    @Column(name = "is_active")
+    private Boolean isActive;
 
     @Column(name = "is_verified", nullable = false)
     private Boolean isVerified;
@@ -38,4 +47,10 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    private void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
 }
