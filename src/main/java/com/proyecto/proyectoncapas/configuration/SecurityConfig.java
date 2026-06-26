@@ -2,6 +2,7 @@ package com.proyecto.proyectoncapas.configuration;
 
 import com.proyecto.proyectoncapas.services.authentication.impl.UserDetailsServiceImpl;
 import com.proyecto.proyectoncapas.utils.security.JwtAuthFilter;
+import com.proyecto.proyectoncapas.utils.security.JwtAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +33,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     //Roles
     private static final String ADMIN = "ADMIN";
@@ -50,11 +52,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payments/**").permitAll()
                         .requestMatchers("/api/webhooks/**").permitAll()
-                        .requestMatchers("/api/contracts/**").permitAll()
-                        .requestMatchers("/api/identity/**").permitAll()
-                        .requestMatchers("/api/reservations/**").permitAll()
-                        .requestMatchers("/api/properties/**").permitAll()
-                        .requestMatchers("/api/reviews/**").permitAll()
 
                         // Propiedades
                         // Solicitar catalogo de propiedades, ver/buscar seria publico
@@ -103,6 +100,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/fines/**").authenticated()
 
                         .anyRequest().authenticated()
+                ).exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 ).addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -3,6 +3,7 @@ package com.proyecto.proyectoncapas.exception;
 import com.stripe.exception.SignatureVerificationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -113,6 +114,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleInvalidTemporalKey(InvalidTemporalKeyException ex) {
         return buildResponseEntity(HttpStatus.GONE, "Invalid Temporal Key", ex.getMessage(), null);
     }
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<ApiError> handlePaymentNotFound(PaymentNotFoundException ex) {
+        return buildResponseEntity(HttpStatus.NOT_FOUND, "Payment Not Found", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(InvalidPaymentStateException.class)
+    public ResponseEntity<ApiError> handleInvalidPaymentState(InvalidPaymentStateException ex) {
+        return buildResponseEntity(HttpStatus.CONFLICT, "Invalid Payment State", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(RefundProcessingException.class)
+    public ResponseEntity<ApiError> handleRefundProcessing(RefundProcessingException ex) {
+        return buildResponseEntity(HttpStatus.BAD_GATEWAY, "Refund Processing Error", ex.getMessage(), null);
+    }
+
 
     // Contrato no elegible para generar llave (no firmado, fuera de fecha) - 409
     @ExceptionHandler(ContractNotEligibleException.class)
@@ -123,6 +139,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
         return buildResponseEntity(HttpStatus.CONFLICT, "Email Already Exists", ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiError> handleAuthorizationDenied(
+            AuthorizationDeniedException ex) {
+
+        return buildResponseEntity(HttpStatus.FORBIDDEN, "Access Denied", "You don't have the required authority to access this resource", null
+        );
     }
 
     // Credenciales incorrectas — 401
