@@ -50,13 +50,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payments/**").permitAll()
                         .requestMatchers("/api/webhooks/**").permitAll()
-<<<<<<< Updated upstream
                         .requestMatchers("/api/contracts/**").permitAll()
                         .requestMatchers("/api/identity/**").permitAll()
                         .requestMatchers("/api/reservations/**").permitAll()
                         .requestMatchers("/api/properties/**").permitAll()
                         .requestMatchers("/api/reviews/**").permitAll()
-=======
 
                         // Propiedades
                         // Solicitar catalogo de propiedades, ver/buscar seria publico
@@ -104,7 +102,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/fines/**").hasAnyAuthority(ADMIN, ARRENDADOR)
                         .requestMatchers(HttpMethod.GET, "/api/fines/**").authenticated()
 
->>>>>>> Stashed changes
                         .anyRequest().authenticated()
                 ).addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
