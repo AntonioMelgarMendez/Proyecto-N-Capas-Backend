@@ -1,5 +1,6 @@
 package com.proyecto.proyectoncapas.services.photo;
 
+import com.proyecto.proyectoncapas.dto.response.PhotoStreamDTO;
 import com.proyecto.proyectoncapas.dto.response.PropertyPhotoResponseDTO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,6 +11,8 @@ public interface PropertyPhotoService {
     PropertyPhotoResponseDTO uploadPhoto(Long propertyId, MultipartFile file, boolean isPrimary);
 
     List<PropertyPhotoResponseDTO> getPhotosByProperty(Long propertyId);
+
+    PhotoStreamDTO getPhotoStream(Long photoId);
 
     void deletePhoto(Long photoId);
 }

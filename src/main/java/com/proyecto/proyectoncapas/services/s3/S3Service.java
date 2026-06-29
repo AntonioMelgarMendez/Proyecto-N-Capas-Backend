@@ -1,5 +1,6 @@
 package com.proyecto.proyectoncapas.services.s3;
 
+import com.proyecto.proyectoncapas.dto.response.PhotoStreamDTO;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,6 +12,8 @@ public interface S3Service {
     void deleteFile(String s3Key);
 
     String getFileUrl(String s3Key);
+
+    PhotoStreamDTO getFile(String s3Key);
 
     String resolveContentType(MultipartFile file);
 

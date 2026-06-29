@@ -21,10 +21,11 @@ public class PropertyPhoto {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
-    @Column(name = "s3_key", nullable = false)
+    @Column(name = "s3_key", nullable = false, columnDefinition = "TEXT")
     private String s3Key;
 
-    @Column(name = "s3_url", nullable = false)
+    /** Cached reference; fresh presigned URL is generated from s3Key on read. */
+    @Column(name = "s3_url", nullable = false, columnDefinition = "TEXT")
     private String s3Url;
 
     @Column(name = "file_name", nullable = false)

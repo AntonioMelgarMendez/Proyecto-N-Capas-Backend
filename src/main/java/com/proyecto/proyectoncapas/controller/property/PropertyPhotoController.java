@@ -1,6 +1,7 @@
 package com.proyecto.proyectoncapas.controller.property;
 
 import com.proyecto.proyectoncapas.dto.response.GeneralResponse;
+import com.proyecto.proyectoncapas.dto.response.PhotoStreamDTO;
 import com.proyecto.proyectoncapas.dto.response.PropertyPhotoResponseDTO;
 import com.proyecto.proyectoncapas.services.photo.PropertyPhotoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,6 +9,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +62,27 @@ public class PropertyPhotoController {
                         .data(data)
                         .build()
         );
+    }
+
+    @GetMapping("/photos/{photoId}/image")
+    @Operation(summary = "Stream property photo", description = "Serve a property photo through the API")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Photo streamed"),
+            @ApiResponse(responseCode = "404", description = "Photo not found")
+    })
+    public ResponseEntity<InputStreamResource> streamPhoto(@PathVariable Long photoId) {
+        PhotoStreamDTO stream = propertyPhotoService.getPhotoStream(photoId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(stream.contentType()));
+        if (stream.contentLength() >= 0) {
+            headers.setContentLength(stream.contentLength());
+        }
+        headers.setCacheControl("public, max-age=3600");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(new InputStreamResource(stream.inputStream()));
     }
 
     @DeleteMapping("/photos/{photoId}")

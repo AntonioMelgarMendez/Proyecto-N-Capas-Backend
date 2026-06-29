@@ -1,5 +1,6 @@
 package com.proyecto.proyectoncapas.services.photo.impl;
 
+import com.proyecto.proyectoncapas.dto.response.PhotoStreamDTO;
 import com.proyecto.proyectoncapas.dto.response.PropertyPhotoResponseDTO;
 import com.proyecto.proyectoncapas.entities.Property;
 import com.proyecto.proyectoncapas.entities.PropertyPhoto;
@@ -33,18 +34,11 @@ public class PropertyPhotoServiceImpl implements PropertyPhotoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found with ID: " + propertyId));
 
         String s3Key = s3Service.uploadFile(file, "properties/" + propertyId);
-        String s3Url;
-        try {
-            s3Url = s3Service.getFileUrl(s3Key);
-        } catch (RuntimeException e) {
-            s3Service.deleteFile(s3Key);
-            throw e;
-        }
 
         PropertyPhoto photo = PropertyPhoto.builder()
                 .property(property)
                 .s3Key(s3Key)
-                .s3Url(s3Url)
+                .s3Url(s3Key)
                 .fileName(s3Service.resolveFileName(file))
                 .fileType(s3Service.resolveContentType(file))
                 .isPrimary(isPrimary)
@@ -52,9 +46,9 @@ public class PropertyPhotoServiceImpl implements PropertyPhotoService {
 
         photo = propertyPhotoRepository.save(photo);
         log.info("Photo uploaded for Property ID: {}, S3 key: {}", propertyId, s3Key);
-        
+
         PropertyPhotoResponseDTO responseDTO = PropertyPhotoMapper.toResponseDTO(photo);
-        responseDTO.setS3Url(s3Url);
+        responseDTO.setS3Url(s3Service.getFileUrl(s3Key));
         return responseDTO;
     }
 
@@ -71,6 +65,15 @@ public class PropertyPhotoServiceImpl implements PropertyPhotoService {
                     return dto;
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PhotoStreamDTO getPhotoStream(Long photoId) {
+        PropertyPhoto photo = propertyPhotoRepository.findById(photoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Photo not found with ID: " + photoId));
+
+        return s3Service.getFile(photo.getS3Key());
     }
 
     @Override
