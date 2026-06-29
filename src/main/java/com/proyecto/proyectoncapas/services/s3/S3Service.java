@@ -11,4 +11,8 @@ public interface S3Service {
     void deleteFile(String s3Key);
 
     String getFileUrl(String s3Key);
+
+    String resolveContentType(MultipartFile file);
+
+    String resolveFileName(MultipartFile file);
 }

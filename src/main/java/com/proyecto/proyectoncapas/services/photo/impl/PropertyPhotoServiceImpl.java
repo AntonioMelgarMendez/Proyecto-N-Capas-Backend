@@ -33,14 +33,20 @@ public class PropertyPhotoServiceImpl implements PropertyPhotoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Property not found with ID: " + propertyId));
 
         String s3Key = s3Service.uploadFile(file, "properties/" + propertyId);
-        String s3Url = s3Service.getFileUrl(s3Key);
+        String s3Url;
+        try {
+            s3Url = s3Service.getFileUrl(s3Key);
+        } catch (RuntimeException e) {
+            s3Service.deleteFile(s3Key);
+            throw e;
+        }
 
         PropertyPhoto photo = PropertyPhoto.builder()
                 .property(property)
                 .s3Key(s3Key)
                 .s3Url(s3Url)
-                .fileName(file.getOriginalFilename())
-                .fileType(file.getContentType())
+                .fileName(s3Service.resolveFileName(file))
+                .fileType(s3Service.resolveContentType(file))
                 .isPrimary(isPrimary)
                 .build();
 
