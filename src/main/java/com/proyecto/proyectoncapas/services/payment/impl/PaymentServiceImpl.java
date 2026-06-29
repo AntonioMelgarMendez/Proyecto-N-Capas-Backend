@@ -45,7 +45,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final ExtensionRequestRepository extensionRequestRepository;
     private final ReservationService reservationService;
 
-    @Value("${frontend.url:http://localhost:5173}")
+    @Value("${frontend.url:https://proyecto-n-capas-frontend.vercel.app}")
     private String frontendUrl;
 
     public PaymentServiceImpl(
