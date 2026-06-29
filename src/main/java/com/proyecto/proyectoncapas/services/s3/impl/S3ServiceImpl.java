@@ -7,11 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
@@ -38,7 +40,7 @@ public class S3ServiceImpl implements S3Service {
     @Value("${aws.s3.region}")
     private String region;
 
-    @Value("${aws.s3.endpoint-override:#{null}}")
+    @Value("${aws.s3.endpoint-override:}")
     private String endpointOverride;
 
     @Override
@@ -51,7 +53,7 @@ public class S3ServiceImpl implements S3Service {
             PutObjectRequest request = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
-                    .contentType(file.getContentType())
+                    .contentType(resolveContentTypeInternal(file))
                     .build();
 
             s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
@@ -59,8 +61,11 @@ public class S3ServiceImpl implements S3Service {
             return key;
 
         } catch (IOException e) {
-            log.error("Failed to upload file to S3", e);
-            throw new FileStorageException("Failed to upload file: " + e.getMessage());
+            log.error("Failed to read uploaded file bytes", e);
+            throw new FileStorageException("Failed to read uploaded file: " + e.getMessage());
+        } catch (S3Exception | SdkClientException e) {
+            log.error("Failed to upload file to bucket {} (endpoint override: {})", bucketName, endpointOverride, e);
+            throw new FileStorageException("Failed to upload file to storage: " + e.getMessage());
         }
     }
 
@@ -78,29 +83,75 @@ public class S3ServiceImpl implements S3Service {
 
     @Override
     public String getFileUrl(String s3Key) {
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                .bucket(bucketName)
-                .key(s3Key)
-                .build();
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(s3Key)
+                    .build();
 
-        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofHours(1)) // 1 hour duration
-                .getObjectRequest(getObjectRequest)
-                .build();
+            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofHours(1))
+                    .getObjectRequest(getObjectRequest)
+                    .build();
 
-        PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
-        return presignedRequest.url().toString();
+            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
+            return presignedRequest.url().toString();
+        } catch (S3Exception | SdkClientException e) {
+            log.warn("Presigned URL failed for key {}, using direct URL fallback", s3Key, e);
+            return buildDirectUrl(s3Key);
+        }
+    }
+
+    @Override
+    public String resolveContentType(MultipartFile file) {
+        return resolveContentTypeInternal(file);
+    }
+
+    @Override
+    public String resolveFileName(MultipartFile file) {
+        String name = file.getOriginalFilename();
+        if (name != null && !name.isBlank()) {
+            return name.replaceAll("[^a-zA-Z0-9._-]", "_");
+        }
+        String type = resolveContentTypeInternal(file);
+        if ("image/png".equals(type)) return "photo.png";
+        if ("image/webp".equals(type)) return "photo.webp";
+        return "photo.jpg";
+    }
+
+    private String buildDirectUrl(String s3Key) {
+        if (endpointOverride != null && !endpointOverride.isBlank()) {
+            String base = endpointOverride.trim().replaceAll("/$", "");
+            return base + "/" + bucketName + "/" + s3Key;
+        }
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Key);
     }
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new FileStorageException("File cannot be empty");
         }
-        if (!ALLOWED_TYPES.contains(file.getContentType())) {
+        if (!ALLOWED_TYPES.contains(resolveContentTypeInternal(file))) {
             throw new FileStorageException("File type not allowed. Accepted: JPEG, PNG, WEBP");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new FileStorageException("File size exceeds the 5MB limit");
         }
+    }
+
+    private String resolveContentTypeInternal(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType != null && !contentType.isBlank()) {
+            return contentType;
+        }
+        String name = file.getOriginalFilename();
+        if (name == null) {
+            return "application/octet-stream";
+        }
+        String lower = name.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".webp")) return "image/webp";
+        return "application/octet-stream";
     }
 }
