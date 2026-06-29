@@ -24,8 +24,12 @@ public class S3Config {
     @Value("${aws.credentials.secret-access-key}")
     private String secretAccessKey;
 
-    @Value("${aws.s3.endpoint-override:#{null}}")
+    @Value("${aws.s3.endpoint-override:}")
     private String endpointOverride;
+
+    private boolean hasEndpointOverride() {
+        return endpointOverride != null && !endpointOverride.isBlank();
+    }
 
     @Bean
     public S3Client s3Client() {
@@ -33,8 +37,8 @@ public class S3Config {
                 .region(Region.of(region))
                 .credentialsProvider(getCredentialsProvider());
 
-        if (endpointOverride != null) {
-            builder.endpointOverride(URI.create(endpointOverride))
+        if (hasEndpointOverride()) {
+            builder.endpointOverride(URI.create(endpointOverride.trim()))
                     .forcePathStyle(true);
         }
 
@@ -47,8 +51,8 @@ public class S3Config {
                 .region(Region.of(region))
                 .credentialsProvider(getCredentialsProvider());
 
-        if (endpointOverride != null) {
-            builder.endpointOverride(URI.create(endpointOverride));
+        if (hasEndpointOverride()) {
+            builder.endpointOverride(URI.create(endpointOverride.trim()));
         }
 
         return builder.build();

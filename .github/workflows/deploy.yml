@@ -83,6 +83,9 @@ jobs:
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
             STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}
+            FRONTEND_URL=https://proyecto-n-capas-frontend.vercel.app
             BUCKET_NAME=${{ secrets.BUCKET_NAME }}
             OCI_REGION=${{ secrets.OCI_REGION }}
             S3_ENDPOINT=${{ secrets.S3_ENDPOINT }}
