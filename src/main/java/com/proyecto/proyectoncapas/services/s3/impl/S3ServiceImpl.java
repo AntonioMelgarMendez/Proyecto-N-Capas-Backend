@@ -1,5 +1,6 @@
 package com.proyecto.proyectoncapas.services.s3.impl;
 
+import com.proyecto.proyectoncapas.dto.response.PhotoStreamDTO;
 import com.proyecto.proyectoncapas.exception.FileStorageException;
 import com.proyecto.proyectoncapas.services.s3.S3Service;
 import lombok.RequiredArgsConstructor;
@@ -7,11 +8,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -101,6 +104,26 @@ public class S3ServiceImpl implements S3Service {
         } catch (S3Exception | SdkClientException e) {
             log.warn("Presigned URL failed for key {}, using direct URL fallback", s3Key, e);
             return buildDirectUrl(s3Key);
+        }
+    }
+
+    @Override
+    public PhotoStreamDTO getFile(String s3Key) {
+        try {
+            ResponseInputStream<GetObjectResponse> response = s3Client.getObject(
+                    GetObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(s3Key)
+                            .build());
+
+            GetObjectResponse metadata = response.response();
+            String contentType = metadata.contentType() != null ? metadata.contentType() : "application/octet-stream";
+            long contentLength = metadata.contentLength() != null ? metadata.contentLength() : -1L;
+
+            return new PhotoStreamDTO(response, contentType, contentLength);
+        } catch (S3Exception | SdkClientException e) {
+            log.error("Failed to read file from storage with key: {}", s3Key, e);
+            throw new FileStorageException("Failed to read file from storage: " + e.getMessage());
         }
     }
 

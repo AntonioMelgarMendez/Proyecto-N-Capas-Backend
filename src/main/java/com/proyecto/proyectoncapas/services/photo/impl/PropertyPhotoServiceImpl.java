@@ -1,5 +1,6 @@
 package com.proyecto.proyectoncapas.services.photo.impl;
 
+import com.proyecto.proyectoncapas.dto.response.PhotoStreamDTO;
 import com.proyecto.proyectoncapas.dto.response.PropertyPhotoResponseDTO;
 import com.proyecto.proyectoncapas.entities.Property;
 import com.proyecto.proyectoncapas.entities.PropertyPhoto;
@@ -64,6 +65,15 @@ public class PropertyPhotoServiceImpl implements PropertyPhotoService {
                     return dto;
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PhotoStreamDTO getPhotoStream(Long photoId) {
+        PropertyPhoto photo = propertyPhotoRepository.findById(photoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Photo not found with ID: " + photoId));
+
+        return s3Service.getFile(photo.getS3Key());
     }
 
     @Override
