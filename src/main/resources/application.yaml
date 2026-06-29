@@ -20,12 +20,25 @@ stripe:
   webhook:
     secret: ${STRIPE_WEBHOOK_SECRET:whsec_temporal_por_definir}
 
+frontend:
+  url: ${FRONTEND_URL:https://proyecto-n-capas-frontend.vercel.app}
+
+payment:
+  reservation-expiration-minutes: 30
+
 # --- Configuración de AWS S3 ---
 aws:
   s3:
-    bucket-name: proyecto-ncapas-dev
-    region: us-east-1
-    endpoint-override: http://localhost:9000
+    bucket-name: ${BUCKET_NAME:proyecto-ncapas-dev}
+    region: ${OCI_REGION:us-east-1}
+    endpoint-override: ${S3_ENDPOINT:http://localhost:9000}
   credentials:
     access-key-id: minioadmin
     secret-access-key: minioadmin
+
+# --- Configuración de JWT ---
+security:
+  jwt:
+    # HS256 requiere >= 256 bits (32 caracteres). Override en prod con JWT_SECRET.
+    secret-key: ${JWT_SECRET:rentpro-local-dev-jwt-secret-key-2026!!}
+    expiration-time: ${JWT_EXPIRATION:86400000}

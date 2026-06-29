@@ -10,9 +10,14 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,6 +30,7 @@ public class S3ServiceImpl implements S3Service {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
@@ -36,10 +42,10 @@ public class S3ServiceImpl implements S3Service {
     private String endpointOverride;
 
     @Override
-    public String uploadFile(MultipartFile file, Long propertyId) {
+    public String uploadFile(MultipartFile file, String pathPrefix) {
         validateFile(file);
 
-        String key = "properties/" + propertyId + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
+        String key = pathPrefix + "/" + UUID.randomUUID() + "-" + file.getOriginalFilename();
 
         try {
             PutObjectRequest request = PutObjectRequest.builder()
@@ -69,12 +75,21 @@ public class S3ServiceImpl implements S3Service {
         log.info("File deleted from S3 with key: {}", s3Key);
     }
 
+
     @Override
     public String getFileUrl(String s3Key) {
-        if (endpointOverride != null) {
-            return endpointOverride + "/" + bucketName + "/" + s3Key;
-        }
-        return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + s3Key;
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(s3Key)
+                .build();
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofHours(1)) // 1 hour duration
+                .getObjectRequest(getObjectRequest)
+                .build();
+
+        PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
+        return presignedRequest.url().toString();
     }
 
     private void validateFile(MultipartFile file) {
