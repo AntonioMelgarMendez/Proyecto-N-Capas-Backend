@@ -1,6 +1,7 @@
 package com.proyecto.proyectoncapas.exception;
 
 import com.stripe.exception.SignatureVerificationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     // Maneja cualquier "Not Found" (Reservas, Contratos, Usuarios)
@@ -63,10 +65,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.error("Data integrity violation on save", ex);
+        String detail = ex.getMostSpecificCause() != null
+                ? ex.getMostSpecificCause().getMessage()
+                : ex.getMessage();
         return buildResponseEntity(
                 HttpStatus.BAD_REQUEST,
                 "Data Integrity Error",
-                "Could not save uploaded file metadata. Check file name and type.",
+                "Could not save uploaded file metadata: " + detail,
                 null
         );
     }
