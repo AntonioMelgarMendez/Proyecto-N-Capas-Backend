@@ -53,7 +53,7 @@ public class S3ServiceImpl implements S3Service {
             PutObjectRequest request = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
-                    .contentType(resolveContentType(file))
+                    .contentType(resolveContentTypeInternal(file))
                     .build();
 
             s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
@@ -83,25 +83,55 @@ public class S3ServiceImpl implements S3Service {
 
     @Override
     public String getFileUrl(String s3Key) {
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                .bucket(bucketName)
-                .key(s3Key)
-                .build();
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(s3Key)
+                    .build();
 
-        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofHours(1)) // 1 hour duration
-                .getObjectRequest(getObjectRequest)
-                .build();
+            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofHours(1))
+                    .getObjectRequest(getObjectRequest)
+                    .build();
 
-        PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
-        return presignedRequest.url().toString();
+            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
+            return presignedRequest.url().toString();
+        } catch (S3Exception | SdkClientException e) {
+            log.warn("Presigned URL failed for key {}, using direct URL fallback", s3Key, e);
+            return buildDirectUrl(s3Key);
+        }
+    }
+
+    @Override
+    public String resolveContentType(MultipartFile file) {
+        return resolveContentTypeInternal(file);
+    }
+
+    @Override
+    public String resolveFileName(MultipartFile file) {
+        String name = file.getOriginalFilename();
+        if (name != null && !name.isBlank()) {
+            return name.replaceAll("[^a-zA-Z0-9._-]", "_");
+        }
+        String type = resolveContentTypeInternal(file);
+        if ("image/png".equals(type)) return "photo.png";
+        if ("image/webp".equals(type)) return "photo.webp";
+        return "photo.jpg";
+    }
+
+    private String buildDirectUrl(String s3Key) {
+        if (endpointOverride != null && !endpointOverride.isBlank()) {
+            String base = endpointOverride.trim().replaceAll("/$", "");
+            return base + "/" + bucketName + "/" + s3Key;
+        }
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Key);
     }
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new FileStorageException("File cannot be empty");
         }
-        if (!ALLOWED_TYPES.contains(resolveContentType(file))) {
+        if (!ALLOWED_TYPES.contains(resolveContentTypeInternal(file))) {
             throw new FileStorageException("File type not allowed. Accepted: JPEG, PNG, WEBP");
         }
         if (file.getSize() > MAX_FILE_SIZE) {
@@ -109,7 +139,7 @@ public class S3ServiceImpl implements S3Service {
         }
     }
 
-    private String resolveContentType(MultipartFile file) {
+    private String resolveContentTypeInternal(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType != null && !contentType.isBlank()) {
             return contentType;

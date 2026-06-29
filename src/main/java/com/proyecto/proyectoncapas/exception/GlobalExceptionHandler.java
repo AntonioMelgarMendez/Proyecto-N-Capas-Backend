@@ -1,6 +1,7 @@
 package com.proyecto.proyectoncapas.exception;
 
 import com.stripe.exception.SignatureVerificationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -56,6 +57,16 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "File Storage Error",
                 ex.getMessage(),
+                null
+        );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return buildResponseEntity(
+                HttpStatus.BAD_REQUEST,
+                "Data Integrity Error",
+                "Could not save uploaded file metadata. Check file name and type.",
                 null
         );
     }
