@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payments/**").permitAll()
                         .requestMatchers("/api/webhooks/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         // Administración — solo ADMIN
                         .requestMatchers("/api/admin/**").hasAuthority(ADMIN)
@@ -109,7 +110,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/fines/**").hasAnyAuthority(ADMIN, ARRENDADOR)
                         .requestMatchers(HttpMethod.GET, "/api/fines/**").authenticated()
 
+
                         .anyRequest().authenticated()
+
+                        
                 ).exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 ).addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

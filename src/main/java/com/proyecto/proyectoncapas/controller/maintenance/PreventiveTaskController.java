@@ -7,6 +7,10 @@ import com.proyecto.proyectoncapas.entities.PreventiveTask;
 import com.proyecto.proyectoncapas.entities.Property;
 import com.proyecto.proyectoncapas.repository.PreventiveTaskRepository;
 import com.proyecto.proyectoncapas.repository.PropertyRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,6 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/preventive-tasks")
 @RequiredArgsConstructor
+@Tag(name = "Maintenance / Preventive Tasks", description = "Endpoints for scheduling and managing property preventive maintenance tasks")
 public class PreventiveTaskController {
 
     private final PreventiveTaskRepository taskRepository;
@@ -26,6 +31,10 @@ public class PreventiveTaskController {
 
     @GetMapping("/landlord/{landlordId}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ARRENDADOR')")
+    @Operation(summary = "Get tasks by landlord ID", description = "Retrieve scheduled preventive tasks for all properties owned by a specific landlord. Accessible by Admin and Landlords")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tasks successfully retrieved")
+    })
     public ResponseEntity<GeneralResponse<List<PreventiveTaskResponseDTO>>> getByLandlord(@PathVariable Long landlordId) {
         List<PreventiveTaskResponseDTO> data = taskRepository
                 .findByProperty_LandlordIdOrderByScheduledDateAsc(landlordId)
@@ -41,6 +50,12 @@ public class PreventiveTaskController {
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ARRENDADOR')")
+    @Operation(summary = "Create a preventive task", description = "Schedule a new preventive maintenance task for a property. Accessible by Admin and Landlords")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Task successfully created"),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload"),
+            @ApiResponse(responseCode = "404", description = "Property not found")
+    })
     public ResponseEntity<GeneralResponse<PreventiveTaskResponseDTO>> create(
             @Valid @RequestBody PreventiveTaskRequestDTO req) {
 
@@ -65,6 +80,11 @@ public class PreventiveTaskController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ARRENDADOR')")
+    @Operation(summary = "Update task status", description = "Change the status of a preventive maintenance task (e.g. PENDING, COMPLETED). Accessible by Admin and Landlords")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Task status successfully updated"),
+            @ApiResponse(responseCode = "404", description = "Task not found")
+    })
     public ResponseEntity<GeneralResponse<PreventiveTaskResponseDTO>> updateStatus(
             @PathVariable Long id,
             @RequestParam String status) {
@@ -83,6 +103,12 @@ public class PreventiveTaskController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ARRENDADOR')")
+    @Operation(summary = "Delete a preventive task", description = "Remove a scheduled preventive maintenance task by ID. Accessible by Admin and Landlords")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "244", description = "Task deleted successfully (No Content)"),
+            @ApiResponse(responseCode = "204", description = "Task deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Task not found")
+    })
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         taskRepository.deleteById(id);
         return ResponseEntity.noContent().build();
