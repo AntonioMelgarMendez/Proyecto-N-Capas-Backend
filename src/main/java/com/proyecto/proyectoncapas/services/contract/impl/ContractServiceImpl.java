@@ -46,7 +46,7 @@ public class ContractServiceImpl implements ContractService {
         contract.setContent("Legal Rental Agreement for Property...");
         contract.setTenantSignatureDate(LocalDateTime.now());
         contract.setIpAddress(request.getIpAddress());
-        contract.setStatus("PENDING_SIGNATURE");
+        contract.setStatus("SIGNED");
         String rawData = reservationId.toString() + contract.getTenantSignatureDate().toString() + request.getIpAddress();
         contract.setSignatureHash(generateSHA256Hash(rawData));
 
